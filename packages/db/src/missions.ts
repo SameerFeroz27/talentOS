@@ -1,5 +1,6 @@
 import { type MissionDifficulty, type MissionStatus, Prisma } from "@prisma/client";
 import { prisma } from "./client";
+import { backfillAssignmentsForAcceptedApplicantsTx } from "./mission-assignments";
 
 export type MissionListFilters = {
   programId?: string;
@@ -90,6 +91,15 @@ export async function createMission(input: MissionInput) {
       }
     });
 
+    // If the mission is published immediately, backfill assignments for already-accepted applicants
+    // who had no mission to assign when their application was accepted.
+    if (input.status === "PUBLISHED") {
+      await backfillAssignmentsForAcceptedApplicantsTx(tx, {
+        tenantId: input.tenantId,
+        programId: input.programId
+      });
+    }
+
     return mission;
   });
 }
@@ -147,6 +157,11 @@ export type SetMissionStatusInput = {
 
 export function setMissionStatus({ id, tenantId, status, actorUserId }: SetMissionStatusInput) {
   return prisma.$transaction(async (tx) => {
+    const existing = await tx.mission.findFirst({ where: { id, tenantId }, select: { programId: true, status: true } });
+    if (!existing) {
+      throw new Error("Mission not found for this tenant.");
+    }
+
     const result = await tx.mission.updateMany({ where: { id, tenantId }, data: { status } });
     if (result.count === 0) {
       throw new Error("Mission not found for this tenant.");
@@ -162,6 +177,15 @@ export function setMissionStatus({ id, tenantId, status, actorUserId }: SetMissi
         metadata: { status }
       }
     });
+
+    // When a mission transitions to PUBLISHED, backfill assignments for already-accepted applicants
+    // who had no mission to assign when their application was accepted.
+    if (status === "PUBLISHED" && existing.status !== "PUBLISHED") {
+      await backfillAssignmentsForAcceptedApplicantsTx(tx, {
+        tenantId,
+        programId: existing.programId
+      });
+    }
 
     return tx.mission.findFirstOrThrow({ where: { id, tenantId } });
   });

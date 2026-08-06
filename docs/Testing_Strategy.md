@@ -17,7 +17,7 @@ The regression suite has two layers:
 The Ops Console can run the full scenario suite or a specific area and shows pass/fail/skip counts plus
 individual scenario rows after each run.
 
-The `v0.19.5` runner defines **40 scenarios across 11 concrete areas plus the `all` orchestrator**.
+The `v0.19.6` runner defines **42 scenarios across 11 concrete areas plus the `all` orchestrator**.
 The current unit and executed-regression totals are recorded in the versioned test-results artifact,
 not inferred here. CI
 (`.github/workflows/ci.yml`) runs the **unit suite only**; scenario regression is a local capability
@@ -463,3 +463,69 @@ sequential learning-task unlock, applicant step-lock UI, admin collapsible/auto-
 rendering, and the Overview aggregation — are deferred to a future jsdom/browser harness and listed as
 Known Gaps in `Regression_Scenarios.md`. See `D-091` through `D-093` and the `v0.19.6` plan/test-results
 pair.
+
+### Configuration & Deployment Regression Tests (`v0.19.7`)
+
+Production-impacting issues were discovered that passed the existing suite but failed during manual QA:
+stale Prisma Client after schema changes, incorrect `NEXTAUTH_URL`, Keycloak redirect URI
+misconfiguration, SSR `window is not defined` in the login page, and missing admin `.env`. The following
+unit tests were added to detect these classes of issues automatically in CI before manual QA.
+
+**Environment & configuration validation** (`packages/auth-web/src/config.test.ts`, 23 tests):
+validates the applicant and admin `.env` files — `NEXTAUTH_URL` scheme/port/host-on-base-domain,
+`NEXTAUTH_SECRET` presence, `APP_BASE_DOMAIN` consistency across portals, `KEYCLOAK_ISSUER`/client ID
+correctness, `DATABASE_URL` scheme, cross-portal consistency (shared realm, base domain, database), and
+the `baseDomainCookieConfig` env-dependent branches (cookie domain scoping, `__Secure-` prefix for HTTPS,
+`__Host-` rejection, localhost fallback). Protects against: `NEXTAUTH_URL` pointing to `localhost`
+instead of the tenant base domain, missing `NEXTAUTH_SECRET` (MissingSecret runtime error), mismatched
+`APP_BASE_DOMAIN` breaking cookie sharing, and single-host vs multi-tenant cookie misconfiguration.
+
+**Prisma schema synchronization** (`packages/db/src/schema-sync.test.ts`, 14 tests):
+validates that the generated `@prisma/client` in `node_modules/.prisma/client` is in sync with
+`schema.prisma` — every schema model appears as a type in the generated client, every enum is declared,
+and every model has a `PrismaClient` delegate accessor. Also validates schema file integrity (datasource,
+generator, expected models/enums/enum-values) and migration directory structure. Protects against: stale
+Prisma Client after schema changes (the exact issue that caused 5 unit + 24 regression failures when a
+developer edited `schema.prisma` but forgot `npm run db:generate`).
+
+**Keycloak realm configuration** (`packages/auth-web/src/realm-config.test.ts`, 25 tests):
+comprehensive validation of the realm import JSON — realm enabled/registration/OTP policy, applicant and
+admin client redirect URIs (canonical callback, wildcard `*.lvh.me`, explicit `demo.lvh.me`, web origins,
+post-logout URIs, default scopes), ops client, all required realm roles (`ORG_ADMIN`, `HR`, `TECH_LEAD`,
+`APPLICANT`, `SUPER_ADMIN`), seed user email validity, no `CONFIGURE_TOTP` on non-superadmin users
+(2FA disabled platform-wide), provisioner service-account with `manage-users`, and redirect URI safety
+(no arbitrary external hosts, http/https only). Protects against: missing redirect URIs for subdomain
+tenants (Keycloak rejects `*.lvh.me` wildcards at runtime), missing realm roles causing `/forbidden`
+redirects, disabled registration breaking "Create account", and open-redirect via overly broad URIs.
+
+**Login callback URL & SSR safety** (`apps/applicant/lib/login-callback.test.ts`, 13 tests):
+validates the extracted `resolveCallbackUrl` pure function — relative path prefixing, absolute URL
+pass-through, query string preservation, tenant subdomain preservation (paysyslabs/acme), empty origin
+SSR fallback, non-http scheme handling, and SSR safety (callable without `window` defined). The login
+page component was refactored to call this function at click time (not render time) so `window` is always
+available. Protects against: SSR `window is not defined` crash during server-side rendering of the login
+page, and tenant subdomain loss where login redirects to the canonical `AUTH_URL` host instead of the
+user's tenant subdomain.
+
+**Middleware route protection & redirect validation** (`packages/auth-web/src/middleware-redirect.test.ts`, 27 tests):
+validates applicant middleware protected-route detection (`/dashboard`, `/apply`, `/application` and
+sub-routes protected; public routes and `_next` assets not protected), admin middleware route exemptions
+(`/api/auth`, `/forbidden`, `/logged-out` exempt; business routes not), tenant callback URL construction
+(preserves subdomain and query params, falls back to localhost), post-login redirect validation
+(`resolveTenantRedirect` allows canonical/tenant-subdomain/apex, rejects foreign/look-alike/malformed,
+resolves relative paths), tenant resolution from host header (subdomain/localhost/127.0.0.1/multi-level),
+and cookie domain sharing (`isSameBaseDomain`). Protects against: unauthenticated users reaching
+protected routes, tenant subdomain loss during redirect, open redirect to foreign hosts, and
+APPLICANT role reaching admin portal.
+
+**Deployment configuration validation** (`packages/db/src/deployment.test.ts`, 30 tests):
+validates `docker-compose.yml` (all services, ports, health checks, volumes, images, dependencies,
+read-only realm mount), `Dockerfile` (multi-stage build, `db:generate` before build, all package.json
+copies, SWC binary, standalone output, openssl, `NODE_ENV=production`), CI workflow (Node 24, `npm ci`,
+`db:generate`, typecheck/lint/test/build, realm-import validation job), port consistency across env
+files, and realm import JSON validity. Protects against: missing `db:generate` in Docker/CI producing
+stale clients, service port/dependency misconfiguration, and realm import JSON corruption.
+
+The full Vitest suite is **639 tests across 55 files**. The `@talentos/auth-web` alias was added to
+`vitest.config.ts` so auth-web tests can import the package's exports. The `baseDomainCookieConfig`
+function was exported from `packages/auth-web/src/auth.ts` for testability.

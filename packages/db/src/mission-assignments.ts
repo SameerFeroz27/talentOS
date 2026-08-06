@@ -221,6 +221,36 @@ export async function assignWeekMissionToAcceptedApplicantTx(
   });
 }
 
+/**
+ * Backfill: when a mission is published (at creation or via status change), any already-accepted
+ * applicants for that program who don't yet have a Week 1 assignment need one created. This closes
+ * the gap where an application is accepted before any PUBLISHED mission exists — the acceptance-time
+ * assignment returned null because no missions were found, and nothing retroactively created the
+ * assignment when a mission was later published.
+ *
+ * Safe to call multiple times: `assignWeekMissionToAcceptedApplicantTx` is idempotent (returns the
+ * existing assignment if one already exists for the week/attempt).
+ */
+export async function backfillAssignmentsForAcceptedApplicantsTx(
+  tx: Prisma.TransactionClient,
+  { tenantId, programId }: { tenantId: string; programId: string }
+) {
+  const acceptedApplications = await tx.application.findMany({
+    where: { tenantId, programId, status: "ACCEPTED" },
+    select: { applicantId: true }
+  });
+
+  for (const app of acceptedApplications) {
+    await assignWeekMissionToAcceptedApplicantTx(tx, {
+      tenantId,
+      programId,
+      applicantId: app.applicantId
+    });
+  }
+
+  return acceptedApplications.length;
+}
+
 export function acceptMissionAssignment(input: {
   tenantId: string;
   applicantId: string;

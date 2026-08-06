@@ -151,6 +151,12 @@ are one scenario).
 | AI Mentor | RBSE blocks off-topic questions. | Manual | Questions outside allowed topics receive a blocked response. |
 | AI Mentor | Markdown and code blocks render correctly. | Manual | `react-markdown` + Prism syntax highlighting in MessageBubble. |
 | AI Mentor | LLM failure falls back to stub response. | Manual | API route returns stub when `GLM_Z_API_KEY` is absent or call fails. |
+| Config | Applicant and admin `.env` files have valid, consistent configuration. | Automated | `config.test.ts` (23 tests): NEXTAUTH_URL, secrets, base domain, Keycloak issuer, cross-portal consistency, cookie config. |
+| Config | Prisma generated client is in sync with schema. | Automated | `schema-sync.test.ts` (14 tests): model/enum/delegate presence in generated client, schema integrity, migration directory. |
+| Config | Keycloak realm import has all required clients, roles, redirect URIs and safety properties. | Automated | `realm-config.test.ts` (25 tests): client config, redirect URIs, realm roles, seed users, provisioner, redirect URI safety. |
+| Config | Login callback URL preserves tenant subdomain and is SSR-safe. | Automated | `login-callback.test.ts` (13 tests): relative/absolute URL handling, tenant preservation, SSR safety. |
+| Config | Middleware route protection and redirect validation. | Automated | `middleware-redirect.test.ts` (27 tests): protected route detection, tenant callback URL, post-login redirect, tenant resolution, cookie domain. |
+| Config | Docker, Dockerfile, CI workflow, and port configuration are consistent. | Automated | `deployment.test.ts` (30 tests): service definitions, build stages, CI steps, port consistency, realm JSON validity. |
 
 ## Data Ownership and Cleanup
 
@@ -191,6 +197,15 @@ Cleanup rules:
 - Cross-tenant route-level denial needs a second regression tenant fixture and browser route checks.
 - Admin review should expand from one accepted-path status transition to all reviewer transitions and
   role-specific denial paths.
+- **Configuration & deployment regression (`v0.19.7`)** — the following classes of production-impacting
+  issues that previously passed automated tests but failed during manual QA are now covered by unit
+  tests (132 tests across 6 files): stale Prisma Client after schema changes (`schema-sync.test.ts`),
+  incorrect `NEXTAUTH_URL` / missing `NEXTAUTH_SECRET` / mismatched `APP_BASE_DOMAIN`
+  (`config.test.ts`), Keycloak redirect URI / realm role / client misconfiguration
+  (`realm-config.test.ts`), SSR `window is not defined` in login page and tenant subdomain loss
+  (`login-callback.test.ts`), middleware route protection / open redirect / tenant resolution
+  (`middleware-redirect.test.ts`), and Docker/Dockerfile/CI/port misconfiguration
+  (`deployment.test.ts`). These run in CI as part of `npm test` (Vitest).
 - **Product decision needed:** applicants already `ACCEPTED` before Mission Assignment (`v0.18.0`)
   shipped have no `MissionAssignment` row and no automated backfill — they see zero missions until an
   admin/ops action (if any) assigns one. This was raised in PR review of the `engineering-journal-mvp`
