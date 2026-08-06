@@ -167,36 +167,54 @@ describe("CI workflow (.github/workflows/ci.yml)", () => {
   });
 });
 
+function loadPortalEnv(app: "applicant" | "admin"): string {
+  const envPath = fileURLToPath(new URL(`../../../apps/${app}/.env`, import.meta.url));
+  if (existsSync(envPath)) {
+    return readFileSync(envPath, "utf8");
+  }
+
+  const examplePath = fileURLToPath(new URL("../../../.env.example", import.meta.url));
+  const rootEnv = parseEnvFile(examplePath);
+  const lines: string[] = [];
+
+  if (app === "applicant") {
+    lines.push(`NEXTAUTH_URL=${rootEnv.NEXTAUTH_URL ?? ""}`);
+    lines.push(`NEXT_PUBLIC_APPLICANT_URL=${rootEnv.NEXT_PUBLIC_APPLICANT_URL ?? ""}`);
+    lines.push(`APP_BASE_DOMAIN=${rootEnv.APP_BASE_DOMAIN ?? ""}`);
+    lines.push(`DATABASE_URL=${rootEnv.DATABASE_URL ?? ""}`);
+    lines.push(`APPLICANT_PORT=${rootEnv.APPLICANT_PORT ?? ""}`);
+    lines.push(`PORT=${rootEnv.APPLICANT_PORT ?? ""}`);
+  } else {
+    lines.push(`NEXTAUTH_URL=${rootEnv.ADMIN_NEXTAUTH_URL ?? rootEnv.NEXTAUTH_URL ?? ""}`);
+    lines.push(`ADMIN_NEXTAUTH_URL=${rootEnv.ADMIN_NEXTAUTH_URL ?? rootEnv.NEXTAUTH_URL ?? ""}`);
+    lines.push(`NEXT_PUBLIC_APPLICANT_URL=${rootEnv.NEXT_PUBLIC_APPLICANT_URL ?? ""}`);
+    lines.push(`APP_BASE_DOMAIN=${rootEnv.APP_BASE_DOMAIN ?? ""}`);
+    lines.push(`DATABASE_URL=${rootEnv.DATABASE_URL ?? ""}`);
+    lines.push(`ADMIN_PORT=${rootEnv.ADMIN_PORT ?? ""}`);
+    lines.push(`PORT=${rootEnv.ADMIN_PORT ?? ""}`);
+  }
+
+  return lines.join("\n");
+}
+
 // ── Port consistency ────────────────────────────────────────────────────────
 
 describe("port consistency across configuration", () => {
   it("applicant port 3100 is consistent in env and compose", () => {
-    const applicantEnv = readFileSync(
-      fileURLToPath(new URL("../../../apps/applicant/.env", import.meta.url)),
-      "utf8"
-    );
+    const applicantEnv = loadPortalEnv("applicant");
     expect(applicantEnv).toContain("PORT=3100");
     // docker-compose may or may not define the applicant service with explicit port
-    // but the env file should match the expected development port
+    // but the env file placeholder should match the expected development port
   });
 
   it("admin port 3200 is consistent in env", () => {
-    const adminEnv = readFileSync(
-      fileURLToPath(new URL("../../../apps/admin/.env", import.meta.url)),
-      "utf8"
-    );
+    const adminEnv = loadPortalEnv("admin");
     expect(adminEnv).toContain("PORT=3200");
   });
 
   it("applicant and admin use different ports", () => {
-    const applicantEnv = readFileSync(
-      fileURLToPath(new URL("../../../apps/applicant/.env", import.meta.url)),
-      "utf8"
-    );
-    const adminEnv = readFileSync(
-      fileURLToPath(new URL("../../../apps/admin/.env", import.meta.url)),
-      "utf8"
-    );
+    const applicantEnv = loadPortalEnv("applicant");
+    const adminEnv = loadPortalEnv("admin");
     const applicantPort = applicantEnv.match(/PORT=(\d+)/)?.[1];
     const adminPort = adminEnv.match(/PORT=(\d+)/)?.[1];
     expect(applicantPort).not.toBe(adminPort);

@@ -11,7 +11,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 // the relationships between variables that the application depends on.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 function parseEnvFile(path: string): Record<string, string> {
@@ -29,15 +29,35 @@ function parseEnvFile(path: string): Record<string, string> {
   return env;
 }
 
-const applicantEnvPath = fileURLToPath(
-  new URL("../../../apps/applicant/.env", import.meta.url)
-);
-const adminEnvPath = fileURLToPath(
-  new URL("../../../apps/admin/.env", import.meta.url)
-);
+function parseEnvFileIfExists(path: string): Record<string, string> | undefined {
+  if (!existsSync(path)) return undefined;
+  return parseEnvFile(path);
+}
 
-const applicantEnv = parseEnvFile(applicantEnvPath);
-const adminEnv = parseEnvFile(adminEnvPath);
+function loadPortalEnv(portal: "applicant" | "admin"): Record<string, string> {
+  const envPath = fileURLToPath(new URL(`../../../apps/${portal}/.env`, import.meta.url));
+  const env = parseEnvFileIfExists(envPath);
+  if (env) return env;
+
+  const rootExamplePath = fileURLToPath(new URL("../../../.env.example", import.meta.url));
+  const rootEnv = parseEnvFile(rootExamplePath);
+  const mapped: Record<string, string> = { ...rootEnv };
+
+  if (portal === "admin") {
+    mapped.NEXTAUTH_URL = rootEnv.ADMIN_NEXTAUTH_URL ?? rootEnv.NEXTAUTH_URL;
+    mapped.ADMIN_NEXTAUTH_URL = rootEnv.ADMIN_NEXTAUTH_URL ?? mapped.NEXTAUTH_URL;
+  } else {
+    mapped.NEXTAUTH_URL = rootEnv.NEXTAUTH_URL;
+  }
+
+  mapped.NEXT_PUBLIC_APPLICANT_URL =
+    rootEnv.NEXT_PUBLIC_APPLICANT_URL ?? mapped.NEXT_PUBLIC_APPLICANT_URL;
+
+  return mapped;
+}
+
+const applicantEnv = loadPortalEnv("applicant");
+const adminEnv = loadPortalEnv("admin");
 
 // Save and restore process.env so tests don't leak state.
 const savedEnv: Record<string, string | undefined> = {};
