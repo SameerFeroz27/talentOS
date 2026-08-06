@@ -46,8 +46,11 @@ function loadPortalEnv(portal: "applicant" | "admin"): Record<string, string> {
   if (portal === "admin") {
     mapped.NEXTAUTH_URL = rootEnv.ADMIN_NEXTAUTH_URL ?? rootEnv.NEXTAUTH_URL;
     mapped.ADMIN_NEXTAUTH_URL = rootEnv.ADMIN_NEXTAUTH_URL ?? mapped.NEXTAUTH_URL;
+    mapped.KEYCLOAK_CLIENT_ID = rootEnv.KEYCLOAK_ADMIN_CLIENT_ID ?? mapped.KEYCLOAK_CLIENT_ID;
   } else {
     mapped.NEXTAUTH_URL = rootEnv.NEXTAUTH_URL;
+    mapped.KEYCLOAK_CLIENT_ID =
+      rootEnv.KEYCLOAK_APPLICANT_CLIENT_ID ?? mapped.KEYCLOAK_CLIENT_ID;
   }
 
   mapped.NEXT_PUBLIC_APPLICANT_URL =
