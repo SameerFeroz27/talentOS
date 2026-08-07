@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { can } from "@talentos/auth";
 import { getTenantContext, StatusBadge } from "@talentos/ui";
 import { getTenantBySlug, listTenantMissions, listTenantPrograms } from "@talentos/db";
+import type { Program } from "@prisma/client";
 import { parsePageParams, paginate } from "@/lib/pagination";
 import { Pagination } from "@/components/Pagination";
 
@@ -25,6 +26,16 @@ export default async function AdminMissionsPage({ searchParams }: MissionsPagePr
   const { tenantSlug } = await getTenantContext();
   const tenant = await getTenantBySlug(tenantSlug);
   const programs = tenant ? await listTenantPrograms(tenant.id) : [];
+  // Deduplicate by name to avoid showing duplicate entries in the filter dropdown (v0.19.6, BUG-4).
+  // Regression test runs can leave duplicate Program rows with the same name but different IDs.
+  const seenNames = new Set<string>();
+  const uniquePrograms: Program[] = [];
+  for (const program of programs) {
+    if (!seenNames.has(program.name)) {
+      seenNames.add(program.name);
+      uniquePrograms.push(program);
+    }
+  }
   const selectedStatus = MISSION_STATUSES.includes(params.status as (typeof MISSION_STATUSES)[number])
     ? (params.status as (typeof MISSION_STATUSES)[number])
     : undefined;
@@ -58,7 +69,7 @@ export default async function AdminMissionsPage({ searchParams }: MissionsPagePr
           <span className={labelText}>Program</span>
           <select name="programId" defaultValue={params.programId ?? ""} className={selectClass}>
             <option value="">All programs</option>
-            {programs.map((program) => (
+            {uniquePrograms.map((program) => (
               <option key={program.id} value={program.id}>
                 {program.name}
               </option>

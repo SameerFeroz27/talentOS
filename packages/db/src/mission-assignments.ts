@@ -74,7 +74,7 @@ export function listAssignedProgramMissions(tenantId: string, applicantId: strin
 export async function listApplicantMissionAssignmentStatuses(tenantId: string, applicantId: string, programId: string) {
   const assignments = await prisma.missionAssignment.findMany({
     where: { tenantId, applicantId, programId },
-    select: { missionId: true, status: true, attemptNumber: true },
+    select: { missionId: true, status: true, attemptNumber: true, deadlineAt: true },
     orderBy: { attemptNumber: "desc" }
   });
   const latestByMission = new Map<string, (typeof assignments)[number]>();
@@ -83,7 +83,12 @@ export async function listApplicantMissionAssignmentStatuses(tenantId: string, a
       latestByMission.set(assignment.missionId, assignment);
     }
   }
-  return new Map([...latestByMission.entries()].map(([missionId, assignment]) => [missionId, assignment.status]));
+  return new Map(
+    [...latestByMission.entries()].map(([missionId, assignment]) => [
+      missionId,
+      { status: assignment.status, deadlineAt: assignment.deadlineAt },
+    ])
+  );
 }
 
 /** The applicant's latest attempt (any status) for a mission — used to render accept/countdown UI. */
@@ -219,6 +224,36 @@ export async function assignWeekMissionToAcceptedApplicantTx(
       status: "NOT_STARTED"
     }
   });
+}
+
+/**
+ * Backfill: when a mission is published (at creation or via status change), any already-accepted
+ * applicants for that program who don't yet have a Week 1 assignment need one created. This closes
+ * the gap where an application is accepted before any PUBLISHED mission exists — the acceptance-time
+ * assignment returned null because no missions were found, and nothing retroactively created the
+ * assignment when a mission was later published.
+ *
+ * Safe to call multiple times: `assignWeekMissionToAcceptedApplicantTx` is idempotent (returns the
+ * existing assignment if one already exists for the week/attempt).
+ */
+export async function backfillAssignmentsForAcceptedApplicantsTx(
+  tx: Prisma.TransactionClient,
+  { tenantId, programId }: { tenantId: string; programId: string }
+) {
+  const acceptedApplications = await tx.application.findMany({
+    where: { tenantId, programId, status: "ACCEPTED" },
+    select: { applicantId: true }
+  });
+
+  for (const app of acceptedApplications) {
+    await assignWeekMissionToAcceptedApplicantTx(tx, {
+      tenantId,
+      programId,
+      applicantId: app.applicantId
+    });
+  }
+
+  return acceptedApplications.length;
 }
 
 export function acceptMissionAssignment(input: {

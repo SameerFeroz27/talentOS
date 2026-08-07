@@ -53,8 +53,9 @@ Keycloak and URL-safety checks are unchanged. See `D-091` through `D-093`.
 | Architecture/design | `docs/Architecture.md` |
 | Data model | `docs/Data_Model.md` |
 | Data dictionary | `docs/Data_Dictionary.md` |
-| Decision record | `docs/Decision_Log.md` (`D-091` through `D-093`) |
+| Decision record | `docs/Decision_Log.md` (`D-091` through `D-095`) |
 | Testing strategy and scenario catalog | `docs/Testing_Strategy.md`, `docs/Regression_Scenarios.md` |
+| QA report | `docs/audits/v0.19.6_Applicant_Onboarding_QA_Report.md` |
 | Applicant guidance | `docs/user-guides/Applicant_Portal_User_Guide.md` |
 | Back Office guidance | `docs/user-guides/Back_Office_User_Guide.md` |
 
@@ -63,8 +64,8 @@ Keycloak and URL-safety checks are unchanged. See `D-091` through `D-093`.
 | `docs/sdlc.md` control | Evidence | Coverage |
 | --- | --- | --- |
 | Document every iteration | Versioned plan/results, this baseline and documentation index | Complete |
-| Preserve committed/tested behavior | 507 unit tests (49 files) plus `regression:all` | Complete; storage carries one pre-existing documented skip |
-| Update architecture/design | `docs/Architecture.md`; `D-091` through `D-093` | Complete |
+| Preserve committed/tested behavior | 671 unit tests (49+ files) plus `regression:all` | Complete; storage carries one pre-existing documented skip |
+| Update architecture/design | `docs/Architecture.md`; `D-091` through `D-095` | Complete |
 | Update testing and regression | `docs/Testing_Strategy.md`; `docs/Regression_Scenarios.md`; versioned results | Complete with explicit deferred client-only checks |
 | Keep Docker/deployment guidance current | No topology or deployment-step change this iteration | N/A — no deployment change |
 | Update data model/dictionary | `docs/Data_Model.md`; `docs/Data_Dictionary.md` (`DOCUMENT`, `fileId`, `isPrerequisite`) | Complete |

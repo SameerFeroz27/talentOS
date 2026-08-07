@@ -116,6 +116,7 @@ const sampleContext: ApplicantContext = {
   },
   upcomingTasks: [],
   missions: [],
+  assignments: [],
   submissions: [],
   daysRemaining: 30,
 };

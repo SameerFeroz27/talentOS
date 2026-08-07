@@ -1113,3 +1113,49 @@ Portfolio, Certificates, Leaderboard, Hiring Recommendations, and the V2/V3 item
 Date: 2026-07-24
 
 Status: Implemented; pending baseline review
+
+---
+
+## D-095: Applicant Onboarding E2E QA Bug Fixes (v0.19.6)
+
+**Context:** End-to-end QA analysis of the new applicant onboarding flow on
+`http://paysyslabs.lvh.me:3100` found four bugs spanning the middleware redirect,
+logout, hydration, and admin filter surfaces.
+
+**Decision:** Fix all four bugs within the `v0.19.6` iteration (no new version
+allocation — these are bug fixes, not new features):
+
+- **BUG-1 (HIGH):** Tenant subdomain lost on middleware redirect. Both applicant
+  and admin middleware used `nextUrl.origin` to build redirect URLs, which inside
+  Docker resolved to the canonical `AUTH_URL` host instead of the tenant
+  subdomain, causing cross-origin RSC fetch failures. Fix: `requestOrigin()`
+  helper using the request `Host` header.
+
+- **BUG-2 (MEDIUM):** Logout "Invalid redirect uri". Verified the code
+  (`buildTenantLogoutUrl` uses canonical `AUTH_URL` origin) and Keycloak
+  `post.logout.redirect.uris` config are correct. No code change needed.
+
+- **BUG-3 (LOW):** React hydration error #418 on Missions page.
+  `DeadlineCountdown` used `useState(() => Date.now())` causing server/client
+  time mismatch. Fix: `useState<number | null>(null)` with `Date.now()` only in
+  `useEffect`.
+
+- **BUG-4 (LOW):** Duplicate "Regression Program" entries in admin Missions
+  filter. 197 duplicate DB rows cleaned + deduplication by name in
+  `missions/page.tsx`.
+
+**Rationale:** All four bugs are quality regressions or data issues within
+shipped v0.19.6 surfaces, not new capabilities. Folding them into v0.19.6
+follows the precedent set by D-094 for iteration-scoped fixes.
+
+**Alternatives considered:** Allocate `v0.19.7` for the QA fixes. Rejected —
+these are bug fixes on already-shipped surfaces, not new features or schema
+changes requiring a versioned plan/test-results pair.
+
+**Impact:** 17 regression tests added (40 total in `middleware-redirect.test.ts`).
+All CI steps pass: typecheck, lint (0 warnings), 671 tests, build (both apps).
+Full QA report at `docs/audits/v0.19.6_Applicant_Onboarding_QA_Report.md`.
+
+Date: 2026-08-07
+
+Status: Implemented; committed on `fix/applicant-journal-tenant-redirect`

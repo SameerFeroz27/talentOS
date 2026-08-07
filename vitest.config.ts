@@ -18,6 +18,8 @@ export default defineConfig({
     alias: [
       { find: /^@talentos\/auth$/, replacement: resolve(root, "packages/auth/src/index.ts") },
       { find: /^@talentos\/auth\/(.+)$/, replacement: resolve(root, "packages/auth/src/$1") },
+      { find: /^@talentos\/auth-web$/, replacement: resolve(root, "packages/auth-web/src/index.ts") },
+      { find: /^@talentos\/auth-web\/(.+)$/, replacement: resolve(root, "packages/auth-web/src/$1") },
       { find: /^@talentos\/db$/, replacement: resolve(root, "packages/db/src/index.ts") },
       { find: /^@talentos\/db\/(.+)$/, replacement: resolve(root, "packages/db/src/$1") },
       // Mirrors apps/applicant/tsconfig.json's "@/*" -> "./*". Scoped to applicant only —

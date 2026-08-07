@@ -91,6 +91,7 @@ const contextBefore: ApplicantContext = {
     { id: "task-3", title: "Write Tests", weekNumber: 3, dueAt: null, completed: false, overdue: false },
   ],
   missions: [{ id: "m-1", title: "API Development", weekNumber: 3, difficulty: "Intermediate" }],
+  assignments: [],
   submissions: [],
   daysRemaining: 30,
 };

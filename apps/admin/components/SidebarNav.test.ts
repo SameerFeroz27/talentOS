@@ -16,7 +16,6 @@ describe("SidebarNav isActive route matching", () => {
       expect(isActive("/programs", overview)).toBe(false);
       expect(isActive("/missions", overview)).toBe(false);
       expect(isActive("/submissions", overview)).toBe(false);
-      expect(isActive("/operations", overview)).toBe(false);
       expect(isActive("/settings", overview)).toBe(false);
       expect(isActive("/organizations", overview)).toBe(false);
     });
@@ -55,11 +54,6 @@ describe("SidebarNav isActive route matching", () => {
       expect(isActive("/submissions/xyz", item)).toBe(true);
     });
 
-    it("Operations is active on `/operations` only", () => {
-      const item = NAV_ITEMS.find((i) => i.href === "/operations")!;
-      expect(isActive("/operations", item)).toBe(true);
-    });
-
     it("Settings is active on `/settings` only", () => {
       const item = NAV_ITEMS.find((i) => i.href === "/settings")!;
       expect(isActive("/settings", item)).toBe(true);
@@ -77,7 +71,6 @@ describe("SidebarNav isActive route matching", () => {
       expect(isActive("/", item)).toBe(false);
       expect(isActive("/programs", item)).toBe(false);
       expect(isActive("/missions", item)).toBe(false);
-      expect(isActive("/operations", item)).toBe(false);
       expect(isActive("/settings", item)).toBe(false);
     });
 
@@ -92,7 +85,6 @@ describe("SidebarNav isActive route matching", () => {
     it("Missions is not active on Submissions or other top-level routes", () => {
       const item = NAV_ITEMS.find((i) => i.href === "/missions")!;
       expect(isActive("/submissions", item)).toBe(false);
-      expect(isActive("/operations", item)).toBe(false);
     });
 
     it("no item is active on an unknown route", () => {
@@ -104,7 +96,7 @@ describe("SidebarNav isActive route matching", () => {
   });
 
   describe("NAV_ITEMS integrity", () => {
-    it("contains the eight standard admin nav items in order", () => {
+    it("contains the seven standard admin nav items in order", () => {
       expect(NAV_ITEMS.map((i) => i.label)).toEqual([
         "Overview",
         "Applications",
@@ -112,7 +104,6 @@ describe("SidebarNav isActive route matching", () => {
         "Missions",
         "Tasks",
         "Submissions",
-        "Operations",
         "Settings"
       ]);
     });
