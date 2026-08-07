@@ -495,11 +495,33 @@ async function generateStubResponse(
   }
 
   if (lower.includes("timeline") || lower.includes("schedule") || lower.includes("week")) {
-    // Build timeline from context missions if available
+    // Build timeline from context missions if available, enriched with assignment/submission status
+    const assignments = context?.assignments ?? [];
+    const contextSubmissions = context?.submissions ?? [];
     const missionItems = context?.missions?.length
-      ? context.missions
+      ? [...context.missions]
           .sort((a, b) => a.weekNumber - b.weekNumber)
-          .map((m) => `Week ${m.weekNumber}: ${m.title} (${m.difficulty})`)
+          .map((m) => {
+            const assignment = assignments.find((a) => a.missionId === m.id);
+            const submission = contextSubmissions.find((s) => s.missionId === m.id);
+            const label = !assignment
+              ? "🔒 Not assigned"
+              : assignment.status === "PASSED"
+                ? "✅ Completed & Accepted"
+                : assignment.status === "OVERDUE"
+                  ? "⚠️ Overdue — submit now"
+                  : assignment.status === "REJECTED"
+                    ? "❌ Rejected — retry"
+                    : submission?.status === "SUBMITTED"
+                      ? "📝 Submitted — pending review"
+                      : assignment.status === "IN_PROGRESS"
+                        ? "🔧 In progress"
+                        : "📋 Assigned";
+            const deadline = assignment?.deadlineAt
+              ? ` (due ${new Date(assignment.deadlineAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })})`
+              : "";
+            return `Week ${m.weekNumber}: ${m.title} — ${label}${deadline}`;
+          })
       : [
           "Week 1–2: Onboarding & setup",
           "Week 3–4: Mission 1 — Frontend fundamentals",

@@ -20,18 +20,29 @@ function formatRemaining(ms: number): string {
 export function DeadlineCountdown({ deadlineAt, graceEndsAt }: DeadlineCountdownProps) {
   const deadline = new Date(deadlineAt).getTime();
   const graceEnds = new Date(graceEndsAt).getTime();
-  const [now, setNow] = useState(() => Date.now());
+  // Start with null to avoid server/client hydration mismatch (React #418). The server renders
+  // null (no countdown text) and the client fills it in after mount via useEffect (v0.19.6, BUG-3).
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    setNow(Date.now());
     const interval = setInterval(() => setNow(Date.now()), 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  if (now === null) {
+    return (
+      <div className="rounded-xl border border-brand-blue/30 bg-brand-mist/40 px-4 py-3 text-sm">
+        <p className="font-semibold text-brand-navy">Loading deadline…</p>
+      </div>
+    );
+  }
 
   if (now <= deadline) {
     return (
       <div className="rounded-xl border border-brand-blue/30 bg-brand-mist/40 px-4 py-3 text-sm">
         <p className="font-semibold text-brand-navy">{formatRemaining(deadline - now)} remaining</p>
-        <p className="mt-0.5 text-xs text-slate-500">Deadline: {new Date(deadline).toLocaleString()}</p>
+        <p className="mt-0.5 text-xs text-slate-500">Deadline: {new Date(deadline).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</p>
       </div>
     );
   }

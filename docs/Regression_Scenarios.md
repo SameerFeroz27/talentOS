@@ -206,6 +206,14 @@ Cleanup rules:
   (`login-callback.test.ts`), middleware route protection / open redirect / tenant resolution
   (`middleware-redirect.test.ts`), and Docker/Dockerfile/CI/port misconfiguration
   (`deployment.test.ts`). These run in CI as part of `npm test` (Vitest).
+- **v0.19.6 QA bug fixes (4 bugs, 17 regression tests):** End-to-end QA of the applicant
+  onboarding flow found and fixed: BUG-1 tenant subdomain lost on middleware redirect
+  (HIGH — `requestOrigin()` helper using Host header), BUG-2 logout "Invalid redirect uri"
+  (MEDIUM — verified Keycloak `post.logout.redirect.uris` config is correct), BUG-3 React
+  hydration error #418 on Missions page (LOW — `DeadlineCountdown` now uses `null` initial
+  state), BUG-4 duplicate program entries in admin filter (LOW — deduplication by name +
+  197 duplicate DB rows cleaned). Regression tests added to `middleware-redirect.test.ts`
+  (40 total tests, all passing). See `docs/audits/v0.19.6_Applicant_Onboarding_QA_Report.md`.
 - **Product decision needed:** applicants already `ACCEPTED` before Mission Assignment (`v0.18.0`)
   shipped have no `MissionAssignment` row and no automated backfill — they see zero missions until an
   admin/ops action (if any) assigns one. This was raised in PR review of the `engineering-journal-mvp`

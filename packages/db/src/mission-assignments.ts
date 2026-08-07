@@ -74,7 +74,7 @@ export function listAssignedProgramMissions(tenantId: string, applicantId: strin
 export async function listApplicantMissionAssignmentStatuses(tenantId: string, applicantId: string, programId: string) {
   const assignments = await prisma.missionAssignment.findMany({
     where: { tenantId, applicantId, programId },
-    select: { missionId: true, status: true, attemptNumber: true },
+    select: { missionId: true, status: true, attemptNumber: true, deadlineAt: true },
     orderBy: { attemptNumber: "desc" }
   });
   const latestByMission = new Map<string, (typeof assignments)[number]>();
@@ -83,7 +83,12 @@ export async function listApplicantMissionAssignmentStatuses(tenantId: string, a
       latestByMission.set(assignment.missionId, assignment);
     }
   }
-  return new Map([...latestByMission.entries()].map(([missionId, assignment]) => [missionId, assignment.status]));
+  return new Map(
+    [...latestByMission.entries()].map(([missionId, assignment]) => [
+      missionId,
+      { status: assignment.status, deadlineAt: assignment.deadlineAt },
+    ])
+  );
 }
 
 /** The applicant's latest attempt (any status) for a mission — used to render accept/countdown UI. */

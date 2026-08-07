@@ -303,6 +303,9 @@ const DIRECT_ANSWER_PATTERNS = [
   { pattern: /what('s| is) my schedule/i, type: "timeline" as const },
   { pattern: /upcoming weeks/i, type: "timeline" as const },
   { pattern: /what('s| is) next week/i, type: "timeline" as const },
+  { pattern: /my missions/i, type: "timeline" as const },
+  { pattern: /what missions do i have/i, type: "timeline" as const },
+  { pattern: /list my missions/i, type: "timeline" as const },
   
   // Submission queries
   { pattern: /submission status/i, type: "submission" as const },
@@ -427,10 +430,31 @@ function generateDirectAnswer(
       };
 
     case "timeline":
+      const assignments = context?.assignments ?? [];
       const missionItems = missions.length
-        ? missions
+        ? [...missions]
             .sort((a, b) => a.weekNumber - b.weekNumber)
-            .map((m) => `Week ${m.weekNumber}: ${m.title} (${m.difficulty})`)
+            .map((m) => {
+              const assignment = assignments.find((a) => a.missionId === m.id);
+              const submission = submissions.find((s) => s.missionId === m.id);
+              const label = !assignment
+                ? "🔒 Not assigned"
+                : assignment.status === "PASSED"
+                  ? "✅ Completed & Accepted"
+                  : assignment.status === "OVERDUE"
+                    ? "⚠️ Overdue — submit now"
+                    : assignment.status === "REJECTED"
+                      ? "❌ Rejected — retry"
+                      : submission?.status === "SUBMITTED"
+                        ? "📝 Submitted — pending review"
+                        : assignment.status === "IN_PROGRESS"
+                          ? "🔧 In progress"
+                          : "📋 Assigned";
+              const deadline = assignment?.deadlineAt
+                ? ` (due ${new Date(assignment.deadlineAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })})`
+                : "";
+              return `Week ${m.weekNumber}: ${m.title} — ${label}${deadline}`;
+            })
         : [
             "Week 1–2: Onboarding & setup",
             "Week 3–4: Mission 1 — Frontend fundamentals",
