@@ -8,7 +8,7 @@ Baseline name: `Mission-Scoped Curriculum, Review History And Markdown Mission A
 
 Base branch and commit: `origin/main` at `5560ccf`
 
-Feature branch and code commit: `feature/v0.20.0-mission-scoped-curriculum` at `pending`
+Feature branch and code commit: `feature/v0.20.0-mission-scoped-curriculum` at `1c3e523`
 
 Documentation date: `2026-08-10`
 
@@ -19,10 +19,9 @@ unmerged branch owns a higher version.
 
 Migrations: `20260808090000_program_task_mission_scope`, `20260810120000_submission_review_history`
 
-Repository state: `v0.20.0` application code and documentation are uncommitted in the working tree at
-the time of writing; the baseline commit is recorded as `pending` here and in
-`Architecture.md`/`Testing_Strategy.md`/the test-results artifact, to be backfilled by the follow-up
-`Record v0.20.0 baseline` commit.
+Repository state: `v0.20.0` application code and documentation are committed on
+`feature/v0.20.0-mission-scoped-curriculum` at `1c3e523`, with this baseline record backfilled by the
+follow-up `Record v0.20.0 baseline` commit. Not yet pushed or merged.
 
 Upstream state: `git rev-list --left-right --count origin/main...HEAD` returned `0 0` after
 `git fetch origin`, so the branch carries the latest `origin/main` and no feature-side commits yet. No
