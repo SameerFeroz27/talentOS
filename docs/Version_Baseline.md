@@ -2,47 +2,66 @@
 
 ## Current Allocated Iteration (Review Pending)
 
-Version: `v0.19.6`
+Version: `v0.19.7`
 
-Baseline name: `Mission Workspace LMS, Curriculum Tooling And Thursday Scheduling`
+Baseline name: `Comprehensive Test Coverage Audit And Server-Action Regression Hardening`
 
-Base branch and commit: `origin/main` at `a43118c`
+Base branch and commit: `origin/main` at `5560ccf`
 
-Feature branch and code commit: `refactor/mission-workspace-lms-ui` at `08cea25`
+Feature branch: `feature/comprehensive-test-coverage`
 
-Documentation date: `2026-07-23`
+Documentation date: `2026-08-10`
 
-Latest released baseline: `v0.19.5` at `2fcb919`
+Latest released baseline: `v0.19.6` at `5560ccf`
 
-Reserved active-branch version: none — no other active unmerged remote branch owns a higher version.
+Reserved active-branch version: `v0.20.0` — owned by `origin/feature/v0.20.0-mission-scoped-curriculum`.
 
-Migrations: `20260723120000_learning_resource_document`, `20260723140000_program_task_prerequisite`
+Migrations: none — no schema changes in this iteration.
 
-Repository state: `v0.19.6` application code and documentation are uncommitted in the working tree;
-the feature branch tip equals `origin/main`. The baseline commit is recorded as `pending` here and in
-`Architecture.md`/`Testing_Strategy.md`/the test-results artifact, to be backfilled by the follow-up
-`Record v0.19.6 baseline` commit.
+Repository state: `v0.19.7` adds 10 new test files (138 test cases) and one documentation file.
+No production code was modified. All 809 tests pass (65 files). The feature branch was created
+from `origin/main` at `5560ccf`.
 
-Upstream state: `git rev-list --left-right --count origin/main...HEAD` returned `0 0` after
-`git fetch --all`, so the branch carries the latest `origin/main` and no feature-side commits yet. No
-merge, rebase or push was performed during this documentation update.
+Upstream state: `v0.20.0` is reserved by `origin/feature/v0.20.0-mission-scoped-curriculum`;
+this iteration therefore allocates `v0.19.7` as the next available patch after `v0.19.6`.
 
 ## Baseline Summary
 
-`v0.19.6` is allocated after checking `origin/main` and every active unmerged remote branch. The latest
-released version is `v0.19.5` (`2fcb919`); no active branch owns a higher number, so `v0.19.6` is the
+`v0.19.7` is allocated after checking `origin/main` and every active unmerged remote branch. The latest
+released version is `v0.19.6` (`5560ccf`); `v0.20.0` is owned by an active branch, so `v0.19.7` is the
 next available patch.
 
-The iteration modernizes the applicant Mission Workspace into a tabbed LMS experience (pure view-model,
-compact navy header, in-tab YouTube playback gated at ≥90% watched, sequentially-unlocked weekly
-learning tasks, live `d h m s` countdown) while preserving every existing mission/assignment/submission
-rule. It extends admin curriculum tooling with a top-level **Tasks** page, `DOCUMENT` learning
-resources (real file upload validated to the tenant), `isPrerequisite` tasks that lock the mission's
-own steps, list pagination (10/20) + filters across Applications/Programs/Missions/Submissions, and a
-live Overview KPI dashboard. Mission scheduling moves to a Thursday deadline cadence with ≥4 working
-days, and a repeat excludes every mission the applicant already had that week. Shared `@talentos/ui`
-primitives replace duplicated markup. Two additive migrations; the submission state machine, RBAC,
-Keycloak and URL-safety checks are unchanged. See `D-091` through `D-093`.
+The iteration performs a comprehensive test-coverage audit of the entire TalentOS codebase and fills
+the highest-priority gaps: tenant CRUD, program CRUD, tenant resolution edge cases, RBAC capability
+matrix, journal validation helpers, and server actions for applicant (mission accept/save-submit,
+journal create/update) and admin (program CRUD, submission review, organization creation). No
+production code was changed — all 138 new tests pass against the existing implementation. A new
+`docs/REGRESSION_TEST_PLAN.md` documents the complete coverage matrix, known gaps, and manual-only
+scenarios. See `D-096`.
+
+## v0.19.7 Documentation Index
+
+| Artifact | Location |
+| --- | --- |
+| Regression test plan | `docs/REGRESSION_TEST_PLAN.md` |
+| Architecture/design | `docs/Architecture.md` (unchanged) |
+| Decision record | `docs/Decision_Log.md` (`D-096`) |
+| Testing strategy and scenario catalog | `docs/Testing_Strategy.md`, `docs/Regression_Scenarios.md` |
+
+## v0.19.7 SSDLC Checklist Coverage
+
+| `docs/sdlc.md` control | Evidence | Coverage |
+| --- | --- | --- |
+| Document every iteration | This baseline and documentation index | Complete |
+| Preserve committed/tested behavior | 809 unit tests (65 files) plus `regression:all` | Complete |
+| Update architecture/design | No architecture change this iteration | N/A |
+| Update testing and regression | `docs/Testing_Strategy.md`; `docs/Regression_Scenarios.md`; `docs/REGRESSION_TEST_PLAN.md` | Complete |
+| Keep Docker/deployment guidance current | No topology or deployment-step change this iteration | N/A |
+| Update data model/dictionary | No schema change this iteration | N/A |
+| Shift-left security | Tenant-scoped server-action tests, RBAC capability matrix, cross-tenant rejection tests | Complete |
+| Plan uses repository template expectations | Audit-driven scope, no production code changes | Complete |
+| Plan scenarios map to results and regression catalog | All new test files pass; coverage matrix in `REGRESSION_TEST_PLAN.md` | Complete |
+| User guidance updated | No user-facing change this iteration | N/A |
 
 ## v0.19.6 Documentation Index
 

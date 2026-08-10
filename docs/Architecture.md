@@ -1,10 +1,10 @@
 # TalentOS Architecture
 
-Code version: `v0.19.6`
+Code version: `v0.19.7`
 
-Architecture evidence commit: `08cea25`
+Architecture evidence commit: `5560ccf`
 
-Current documentation update: `v0.19.6`
+Current documentation update: `v0.19.7`
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # Regression Scenarios
 
-Code version: `v0.19.6`
+Code version: `v0.19.7`
 
 ## Purpose
 
@@ -214,6 +214,14 @@ Cleanup rules:
   state), BUG-4 duplicate program entries in admin filter (LOW — deduplication by name +
   197 duplicate DB rows cleaned). Regression tests added to `middleware-redirect.test.ts`
   (40 total tests, all passing). See `docs/audits/v0.19.6_Applicant_Onboarding_QA_Report.md`.
+- **Comprehensive test coverage audit (v0.19.7, D-096):** A full audit of the codebase
+  identified that the server-action layer had no automated tests. 138 tests were added
+  in 10 new files covering: tenant CRUD (`tenants.test.ts`), program CRUD
+  (`programs.test.ts`), tenant resolution edge cases (`tenant.test.ts`), RBAC capability
+  matrix (`capabilities.test.ts`), journal validation helpers (`journal-validation.test.ts`),
+  applicant mission/journal server actions, and admin program/submission/organization
+  server actions. Total: 809 tests across 65 files, all passing. No production code was
+  modified. Complete coverage matrix documented in `docs/REGRESSION_TEST_PLAN.md`.
 - **Product decision needed:** applicants already `ACCEPTED` before Mission Assignment (`v0.18.0`)
   shipped have no `MissionAssignment` row and no automated backfill — they see zero missions until an
   admin/ops action (if any) assigns one. This was raised in PR review of the `engineering-journal-mvp`
