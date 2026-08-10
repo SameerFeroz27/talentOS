@@ -45,11 +45,14 @@ for the assignment's program week. The dashboard's learning resources, weekly ta
 and calendar events are managed by admins from the Program Content page (`/programs/[id]/content`,
 `manageProgramContent` capability).
 
-### Weekly Tasks And Submission Readiness (`v0.19.5`)
+### Weekly Tasks And Submission Readiness (`v0.19.5`, mission-scoped in `v0.20.0`)
 
-`ProgramTask` remains the authoritative tenant/program/week model; it is not attached to a mission.
-`UserTaskCompletion` stores tenant + applicant + task once, so completing learning/setup work remains
-valid when the same program week is repeated. `VideoResource` is retained as the database/API name for
+`ProgramTask` is scoped to a **mission** (`missionId`, required as of `v0.20.0`); `weekNumber` is a
+denormalized copy of the mission's week, always written from `ProgramTask.mission`. Applicants only
+see tasks authored for the mission they were assigned, and submission readiness gates on that
+mission's own required tasks. `UserTaskCompletion` stores tenant + applicant + task once, so a
+completion is not destroyed by a repeat — but because a repeat is served a *different* mission, that
+new mission brings its own tasks to complete rather than inheriting the previous mission's progress. `VideoResource` is retained as the database/API name for
 compatibility, but now supports ordered `MARKDOWN` and `YOUTUBE` resources attached to a task. Applicant
 pages render Markdown without raw HTML and show a clear pending state when a YouTube URL has not yet
 been supplied.

@@ -213,7 +213,7 @@ Schema evidence commit: `2b3afce` (+ `v0.19.6` uncommitted)
 | `tenantId` | Owning tenant. |
 | `programId` | Program receiving the application. |
 | `applicantId` | User who submitted the application. |
-| `status` | `DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `ACCEPTED`, `REJECTED`, `WAITLISTED`, `DISQUALIFIED` (`v0.18.5`, grace period expired with no submission — terminal) or `AWAITING_MISSION_ASSIGNMENT` (`v0.18.5`, a `REPEAT` decision had no alternate mission to reassign — terminal until an admin manually assigns one). |
+| `status` | `DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `ACCEPTED`, `REJECTED`, `WAITLISTED`, `DISQUALIFIED` (`v0.18.5`, grace period expired with no submission — terminal) or `AWAITING_MISSION_ASSIGNMENT` (`v0.18.5`, a `REPEAT` decision had no alternate mission to reassign). Not terminal as of `v0.20.0`: publishing a mission for that week resumes the applicant automatically and returns the application to `ACCEPTED`. |
 | `submittedAt` | Submission timestamp. |
 | `reviewedAt` | Review completion timestamp. |
 | `reviewerNotes` | Internal admin review notes. |

@@ -2,30 +2,53 @@
 
 ## Current Allocated Iteration (Review Pending)
 
-Version: `v0.19.6`
+Version: `v0.20.0`
 
-Baseline name: `Mission Workspace LMS, Curriculum Tooling And Thursday Scheduling`
+Baseline name: `Mission-Scoped Curriculum, Review History And Markdown Mission Authoring`
 
-Base branch and commit: `origin/main` at `a43118c`
+Base branch and commit: `origin/main` at `5560ccf`
 
-Feature branch and code commit: `refactor/mission-workspace-lms-ui` at `08cea25`
+Feature branch and code commit: `feature/v0.20.0-mission-scoped-curriculum` at `pending`
 
-Documentation date: `2026-07-23`
+Documentation date: `2026-08-10`
 
-Latest released baseline: `v0.19.5` at `2fcb919`
+Latest released baseline: `v0.19.6` at `5560ccf`
 
-Reserved active-branch version: none — no other active unmerged remote branch owns a higher version.
+Reserved active-branch version: none — `origin/main` is the only remote branch, so no other active
+unmerged branch owns a higher version.
 
-Migrations: `20260723120000_learning_resource_document`, `20260723140000_program_task_prerequisite`
+Migrations: `20260808090000_program_task_mission_scope`, `20260810120000_submission_review_history`
 
-Repository state: `v0.19.6` application code and documentation are uncommitted in the working tree;
-the feature branch tip equals `origin/main`. The baseline commit is recorded as `pending` here and in
+Repository state: `v0.20.0` application code and documentation are uncommitted in the working tree at
+the time of writing; the baseline commit is recorded as `pending` here and in
 `Architecture.md`/`Testing_Strategy.md`/the test-results artifact, to be backfilled by the follow-up
-`Record v0.19.6 baseline` commit.
+`Record v0.20.0 baseline` commit.
 
 Upstream state: `git rev-list --left-right --count origin/main...HEAD` returned `0 0` after
-`git fetch --all`, so the branch carries the latest `origin/main` and no feature-side commits yet. No
+`git fetch origin`, so the branch carries the latest `origin/main` and no feature-side commits yet. No
 merge, rebase or push was performed during this documentation update.
+
+### What this iteration changes
+
+1. **Tasks are authored per mission** (migration `20260808090000_program_task_mission_scope`).
+   `ProgramTask` gains a required `missionId`; `weekNumber` is denormalized from the mission. Admins
+   pick program → mission before authoring, and submission readiness gates on the assignment's own
+   mission tasks rather than every task sharing the week.
+2. **Repeat weeks recover automatically.** Publishing a mission now serves applicants whose latest
+   attempt is a dangling `REPEAT`, including applications left `ACCEPTED`.
+3. **Immutable review history** (migration `20260810120000_submission_review_history`). New
+   `SubmissionReview` table plus `MissionAssignment.reviewOutcome` / `revisionCount`, backfilled from
+   `audit_logs`. Surfaced on the submission review page and through
+   `getApplicantEvaluationSummary` for AI evaluation.
+4. **Journal grouped by mission and bounded by mission start.** The Journal tab collapses into one
+   section per mission; entries may not pre-date the day the mission was accepted.
+5. **Collapsible admin journal.** The submission review page's journal wall became disclosures
+   (page height 5499px → 1766px in the demo data).
+6. **Enrolled-with-no-mission gaps closed.** Reviewers are notified when an acceptance cannot be
+   assigned, the backfill serves each applicant's actual next week, and applicants see an explicit
+   waiting state instead of a false "all missions accepted".
+7. **Missions can be imported from a single Markdown file**, reusing the seed corpus convention via
+   the shared `parseMissionSpecMarkdown`.
 
 ## Baseline Summary
 
