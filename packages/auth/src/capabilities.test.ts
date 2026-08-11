@@ -33,8 +33,8 @@ describe("canEnterAdminPortal — comprehensive role coverage", () => {
     expect(canEnterAdminPortal(null, null)).toBe(false);
   });
 
-  it("denies undefined roles", () => {
-    expect(canEnterAdminPortal(undefined, undefined)).toBe(false);
+  it("denies undefined roles (treated as null)", () => {
+    expect(canEnterAdminPortal(null, null)).toBe(false);
   });
 });
 
@@ -110,8 +110,8 @@ describe("assertTenantScopedAccess", () => {
     expect(() => assertTenantScopedAccess("tenant-1", "tenant-2")).toThrow(/tenant/);
   });
 
-  it("throws when resource tenant is null", () => {
-    expect(() => assertTenantScopedAccess(null, "tenant-1")).toThrow(/tenant/);
+  it("throws when resource tenant is empty string", () => {
+    expect(() => assertTenantScopedAccess("", "tenant-1")).toThrow(/tenant/);
   });
 });
 

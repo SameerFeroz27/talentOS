@@ -73,7 +73,7 @@ describe("saveJournalEntryAction", () => {
   it("creates a new journal entry and redirects to it", async () => {
     mocks.createJournalEntry.mockResolvedValue({ id: "journal-new" });
 
-    const result = await saveJournalEntryAction(null, { ok: false, error: null, existingEntryId: null }, buildFormData());
+    await saveJournalEntryAction(null, { ok: false, error: null, existingEntryId: null }, buildFormData());
 
     expect(mocks.createJournalEntry).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: "tenant-1", applicantId: "user-1", missionId: "mission-1" })

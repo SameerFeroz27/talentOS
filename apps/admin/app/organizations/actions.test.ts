@@ -30,7 +30,7 @@ vi.mock("@/lib/keycloak-admin", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
-import { createOrganizationAction } from "./actions";
+import { createOrganizationAction, type OrgActionState } from "./actions";
 
 describe("createOrganizationAction", () => {
   beforeEach(() => {
@@ -63,10 +63,12 @@ describe("createOrganizationAction", () => {
       tempPassword: "TempPass123!"
     });
 
-    const result = await createOrganizationAction(null, buildFormData());
+    const result = await createOrganizationAction(null, buildFormData()) as OrgActionState;
 
     expect(result.ok).toBe(true);
-    expect(result.tempPassword).toBe("TempPass123!");
+    if (result.ok) {
+      expect(result.tempPassword).toBe("TempPass123!");
+    }
     expect(mocks.createOrganization).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Acme Corp", slug: "acme", adminEmail: "admin@acme.com" })
     );
@@ -77,51 +79,63 @@ describe("createOrganizationAction", () => {
     mocks.createOrganization.mockResolvedValue({});
     mocks.provisionOrgAdmin.mockResolvedValue({ created: false, tempPassword: null });
 
-    const result = await createOrganizationAction(null, buildFormData());
+    const result = await createOrganizationAction(null, buildFormData()) as OrgActionState;
 
     expect(result.ok).toBe(true);
-    expect(result.tempPassword).toBeNull();
-    expect(result.message).toContain("already had");
+    if (result.ok) {
+      expect(result.tempPassword).toBeNull();
+      expect(result.message).toContain("already had");
+    }
   });
 
   it("returns an error when the name is missing", async () => {
-    const result = await createOrganizationAction(null, buildFormData({ name: "" }));
+    const result = await createOrganizationAction(null, buildFormData({ name: "" })) as OrgActionState;
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("name");
+    if (!result.ok) {
+      expect(result.error).toContain("name");
+    }
   });
 
   it("returns an error for an invalid primary color", async () => {
-    const result = await createOrganizationAction(null, buildFormData({ primaryColor: "blue" }));
+    const result = await createOrganizationAction(null, buildFormData({ primaryColor: "blue" })) as OrgActionState;
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("hex");
+    if (!result.ok) {
+      expect(result.error).toContain("hex");
+    }
   });
 
   it("returns an error for an invalid admin email", async () => {
-    const result = await createOrganizationAction(null, buildFormData({ adminEmail: "not-an-email" }));
+    const result = await createOrganizationAction(null, buildFormData({ adminEmail: "not-an-email" })) as OrgActionState;
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("email");
+    if (!result.ok) {
+      expect(result.error).toContain("email");
+    }
   });
 
   it("returns an error when createOrganization throws (duplicate slug)", async () => {
     mocks.createOrganization.mockRejectedValue(new Error('A tenant with slug "acme" already exists.'));
 
-    const result = await createOrganizationAction(null, buildFormData());
+    const result = await createOrganizationAction(null, buildFormData()) as OrgActionState;
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("already exists");
+    if (!result.ok) {
+      expect(result.error).toContain("already exists");
+    }
   });
 
   it("still reports success when Keycloak provisioning fails (retryable)", async () => {
     mocks.createOrganization.mockResolvedValue({});
     mocks.provisionOrgAdmin.mockRejectedValue(new Error("Keycloak unreachable"));
 
-    const result = await createOrganizationAction(null, buildFormData());
+    const result = await createOrganizationAction(null, buildFormData()) as OrgActionState;
 
     expect(result.ok).toBe(true);
-    expect(result.message).toContain("Keycloak");
-    expect(result.tempPassword).toBeNull();
+    if (result.ok) {
+      expect(result.message).toContain("Keycloak");
+      expect(result.tempPassword).toBeNull();
+    }
   });
 });
