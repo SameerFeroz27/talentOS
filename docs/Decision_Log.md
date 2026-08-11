@@ -1,6 +1,6 @@
 # Decision Log
 
-Code version: `v0.19.5`
+Code version: `v0.20.0`
 
 Architecture evidence commit: `2b3afce`
 

@@ -1,6 +1,6 @@
 # Data Dictionary
 
-Code version: `v0.19.6`
+Code version: `v0.20.0`
 
 Schema evidence commit: `2b3afce` (+ `v0.19.6` uncommitted)
 
@@ -37,8 +37,10 @@ Schema evidence commit: `2b3afce` (+ `v0.19.6` uncommitted)
 > `graceEndsAt` (all nullable DateTime); changes the `mission_assignments` default status to
 > `NOT_STARTED` and rebuilds the `MissionAssignmentStatus` enum to `NOT_STARTED, ACCEPTED,
 > IN_PROGRESS, PENDING_EVALUATION, LATE_SUBMITTED, OVERDUE, FAILED, PASSED, REPEAT`; extends
-> `ApplicationStatus` with `DISQUALIFIED` and `AWAITING_MISSION_ASSIGNMENT` (both terminal — no
-> outgoing transition in `packages/auth/src/workflow.ts`). Migration:
+> `ApplicationStatus` with `DISQUALIFIED` and `AWAITING_MISSION_ASSIGNMENT` (both terminal at
+> `v0.18.5` — no outgoing transition in `packages/auth/src/workflow.ts`; as of `v0.20.0`
+> `AWAITING_MISSION_ASSIGNMENT` is no longer terminal, since publishing a mission for that week
+> returns the application to `ACCEPTED` — see D-097). Migration:
 > `20260714090000_mission_deadlines_and_lifecycle`.
 >
 > `v0.15.0` (AI Mentor MVP, D-066) adds `mentor_conversation`: `id`, `tenantId` (FK→tenants),

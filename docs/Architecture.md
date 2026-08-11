@@ -1,6 +1,6 @@
 # TalentOS Architecture
 
-Code version: `v0.19.6`
+Code version: `v0.20.0`
 
 Architecture evidence commit: `08cea25`
 
@@ -299,7 +299,9 @@ flowchart TD
       AdminHome --> Missions["/missions"]
       Missions --> MissionDetail["/missions/new, /missions/[id]"]
       MissionDetail --> SubmissionReview["/missions/[id]/submissions/[submissionId] (review)"]
-      AdminHome --> Operations["/operations"]
+      AdminHome --> Tasks["/tasks (program then mission, then task authoring)"]
+      AdminHome --> Submissions["/submissions (cross-mission list)"]
+      Submissions --> SubmissionReview
       AdminHome --> Settings["/settings"]
       AdminHome --> Organizations["/organizations (SUPER_ADMIN)"]
       AdminHome --> Forbidden["/forbidden"]
@@ -489,9 +491,11 @@ The architecture establishes clear seams between modules and shared libraries:
 - `packages/ui` owns shared front-end pieces (presentational components, tenant header helper, Tailwind brand preset) consumed by both apps. As of `v0.9.0` the Tailwind brand colors are CSS variables (`--brand-blue`/`--brand-navy`/`--brand-mist`) with hex fallbacks, and `brandStyleBlock(tenant)` emits a per-tenant `<style>` block injected in each portal's root layout so a tenant's saved colors theme both portals live with no component changes.
 - `apps/applicant` owns the public/applicant routes, UI, middleware and API endpoints.
 - `apps/admin` owns the administrator routes, UI and middleware, served at the container root, gated by RBAC.
-- `apps/admin` includes `/operations`, a local-development dashboard for app-visible health checks,
-  area-based scenario regression commands, marker-based cleanup guidance and local reset instructions.
-  It does not execute Docker reset commands from the web app.
+- `apps/admin` has no Operations page: it was removed (`c562e0f`) in favour of the standalone
+  `apps/ops` console, so health checks and regression tooling stay reachable when the portals
+  themselves are down. That console covers app-visible health checks, area-based scenario regression
+  commands, marker-based cleanup guidance and local reset instructions, and does not execute Docker
+  reset commands from the web app.
 - `keycloak/import` owns the realm definition (roles, clients, password policy, demo users).
 - AI mentor integration is represented by a stubbed service boundary in the applicant app.
 

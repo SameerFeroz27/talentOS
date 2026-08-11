@@ -27,7 +27,7 @@ Local development URLs:
 - Programs: `http://demo.lvh.me:3200/programs`
 - Missions: `http://demo.lvh.me:3200/missions`
 - Settings: `http://demo.lvh.me:3200/settings`
-- Operations: `http://demo.lvh.me:3200/operations`
+- Local Ops Console (not part of the Back Office): `http://127.0.0.1:3300`
 - Organizations, Super Admin only: `http://lvh.me:3200/organizations`
 - Keycloak Admin Console: `http://keycloak.lvh.me:8080`
 
