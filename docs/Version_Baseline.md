@@ -6,13 +6,14 @@ Version: `v0.20.0`
 
 Baseline name: `Mission-Scoped Curriculum, Review History And Markdown Mission Authoring`
 
-Base branch and commit: `origin/main` at `5560ccf`
+Base branch and commit: `origin/main` at `c9e2228` (merged in after `origin/main` advanced
+mid-iteration; the base at the time of the feature commit was `5560ccf`)
 
 Feature branch and code commit: `feature/v0.20.0-mission-scoped-curriculum` at `1c3e523`
 
 Documentation date: `2026-08-10`
 
-Latest released baseline: `v0.19.6` at `5560ccf`
+Latest released baseline: `v0.19.6` at `c9e2228`
 
 Reserved active-branch version: none — `origin/main` is the only remote branch, so no other active
 unmerged branch owns a higher version.
@@ -23,9 +24,12 @@ Repository state: `v0.20.0` application code and documentation are committed on
 `feature/v0.20.0-mission-scoped-curriculum` at `1c3e523`, with this baseline record backfilled by the
 follow-up `Record v0.20.0 baseline` commit. Not yet pushed or merged.
 
-Upstream state: `git rev-list --left-right --count origin/main...HEAD` returned `0 0` after
-`git fetch origin`, so the branch carries the latest `origin/main` and no feature-side commits yet. No
-merge, rebase or push was performed during this documentation update.
+Upstream state: `origin/main` advanced to `c9e2228` (PR #55, a `docs/vision.md` revision) while this
+iteration was in progress. It was merged into this branch before pushing, per the AGENTS.md
+pre-push re-verification step; the merge was clean and typecheck, lint and the 729-unit-test suite
+were re-run against the merged tree. Version allocation was recomputed at the same point: the only
+other active branch, `origin/feature/comprehensive-test-coverage`, claims `v0.19.7`, so `v0.20.0`
+remains uncontested.
 
 ### What this iteration changes
 
