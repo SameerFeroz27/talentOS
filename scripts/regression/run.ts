@@ -1642,7 +1642,7 @@ const scenarios: Scenario[] = [
   },
   {
     area: "journal",
-    name: "One journal entry per applicant per calendar date is enforced",
+    name: "One journal entry per applicant per mission per calendar date is enforced",
     run: async (ctx) => {
       const fixture = await createSubmissionFixture(ctx.runId);
       const entryDate = new Date("2026-01-07T00:00:00.000Z");
@@ -1670,7 +1670,7 @@ const scenarios: Scenario[] = [
           missionId: fixture.mission.id,
           entryDate: new Date("2026-01-07T18:00:00.000Z"),
           language: "English",
-          workedOn: "Second entry same day.",
+          workedOn: "Second entry same day same mission.",
           challenge: "n/a",
           solution: "n/a",
           learned: "n/a",
@@ -1679,9 +1679,61 @@ const scenarios: Scenario[] = [
           timeSpentHours: 1,
           evidenceLinks: []
         });
-        throw new Error("A second journal entry for the same calendar date was allowed.");
+        throw new Error("A second journal entry for the same mission on the same calendar date was allowed.");
       } catch (error) {
         if (!(error instanceof JournalEntryDateConflictError)) throw error;
+      }
+
+      // A different mission on the same day must be allowed (v0.20.1: per-mission uniqueness).
+      const weekTwoMission = await createMission({
+        tenantId: fixture.tenant.id,
+        programId: fixture.program.id,
+        title: `Regression Per-Mission Journal ${ctx.runId}`,
+        difficulty: "INTERMEDIATE",
+        status: "PUBLISHED",
+        weekNumber: 2,
+        order: 0,
+        brief: "Regression per-mission journal mission",
+        objective: "Prove same-day different-mission journal is allowed",
+        acceptanceCriteria: "- Per-mission uniqueness",
+        deliverables: "- Journal",
+        evaluationCriteria: "Journal allowed for different mission same day",
+        competencyTags: ["Engineering Reflection"],
+        actorUserId: fixture.actor.id
+      });
+      await markRegressionData({ runId: ctx.runId, entityType: "Mission", entityId: weekTwoMission.id });
+      const weekTwoAssignment = await prisma.missionAssignment.create({
+        data: {
+          tenantId: fixture.tenant.id,
+          programId: fixture.program.id,
+          applicantId: fixture.user.id,
+          missionId: weekTwoMission.id,
+          weekNumber: 2,
+          attemptNumber: 1,
+          status: "ACCEPTED"
+        }
+      });
+      await markRegressionData({ runId: ctx.runId, entityType: "MissionAssignment", entityId: weekTwoAssignment.id });
+
+      const secondMissionEntry = await createJournalEntry({
+        tenantId: fixture.tenant.id,
+        applicantId: fixture.user.id,
+        missionId: weekTwoMission.id,
+        entryDate,
+        language: "English",
+        workedOn: "Same day, different mission.",
+        challenge: "n/a",
+        solution: "n/a",
+        learned: "n/a",
+        aiUsage: "n/a",
+        confidenceRating: 3,
+        timeSpentHours: 1,
+        evidenceLinks: []
+      });
+      await markRegressionData({ runId: ctx.runId, entityType: "EngineeringJournalEntry", entityId: secondMissionEntry.id });
+
+      if (secondMissionEntry.id === first.id) {
+        throw new Error("Same-day different-mission journal entry was not created as a separate row.");
       }
     }
   },

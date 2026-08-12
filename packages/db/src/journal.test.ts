@@ -642,23 +642,52 @@ describe("engineering journal data access", () => {
     });
   });
 
-  it("rejects creating a second entry for the same applicant and entry date", async () => {
+  it("rejects creating a second entry for the same applicant, mission and entry date", async () => {
     prismaMock.txEntryFindFirst.mockResolvedValue({ id: "journal-existing" });
 
     await expectJournalDateConflict(
       createJournalEntry(journalInput()),
-      "You already have a journal entry for this date. Please edit the existing entry instead.",
+      "You already have a journal entry for this mission on this date. Please edit the existing entry instead.",
       "journal-existing"
     );
     expect(prismaMock.txEntryFindFirst).toHaveBeenCalledWith({
       where: {
         tenantId: "tenant-1",
         applicantId: "user-1",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-07T00:00:00.000Z")
       },
       select: { id: true }
     });
     expect(prismaMock.txEntryCreate).not.toHaveBeenCalled();
+  });
+
+  it("allows creating a second entry on the same date for a different mission", async () => {
+    prismaMock.txEntryFindFirst.mockResolvedValue(null);
+    prismaMock.txMissionAssignmentFindFirst.mockResolvedValue({
+      id: "assignment-2",
+      tenantId: "tenant-1",
+      programId: "program-1",
+      applicantId: "user-1",
+      missionId: "mission-2",
+      weekNumber: 2,
+      attemptNumber: 1,
+      status: "ACCEPTED",
+      mission: { id: "mission-2", programId: "program-1", weekNumber: 2 }
+    });
+
+    await createJournalEntry(journalInput({ missionId: "mission-2" }));
+
+    expect(prismaMock.txEntryFindFirst).toHaveBeenCalledWith({
+      where: {
+        tenantId: "tenant-1",
+        applicantId: "user-1",
+        missionId: "mission-2",
+        entryDate: new Date("2026-07-07T00:00:00.000Z")
+      },
+      select: { id: true }
+    });
+    expect(prismaMock.txEntryCreate).toHaveBeenCalledTimes(1);
   });
 
   it("allows creating another entry immediately when the entry date is different", async () => {
@@ -704,6 +733,7 @@ describe("engineering journal data access", () => {
       where: {
         tenantId: "tenant-1",
         applicantId: "user-1",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-07T00:00:00.000Z")
       },
       select: { id: true }
@@ -712,6 +742,7 @@ describe("engineering journal data access", () => {
       where: {
         tenantId: "tenant-1",
         applicantId: "user-1",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-08T00:00:00.000Z")
       },
       select: { id: true }
@@ -751,6 +782,7 @@ describe("engineering journal data access", () => {
       where: {
         tenantId: "tenant-1",
         applicantId: "user-1",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-07T00:00:00.000Z"),
         id: { not: "journal-1" }
       },
@@ -787,7 +819,7 @@ describe("engineering journal data access", () => {
     expect(updateData).not.toHaveProperty("updatedAt");
   });
 
-  it("rejects updating an entry date to another owned entry's date", async () => {
+  it("rejects updating an entry date to another owned entry's date for the same mission", async () => {
     prismaMock.txEntryFindFirst
       .mockResolvedValueOnce({
         id: "journal-1",
@@ -799,7 +831,7 @@ describe("engineering journal data access", () => {
 
     await expectJournalDateConflict(
       updateJournalEntry({ id: "journal-1", ...journalInput() }),
-      "You already have a journal entry for this date. Please choose another date or edit the existing entry.",
+      "You already have a journal entry for this mission on this date. Please choose another date or edit the existing entry.",
       "journal-2"
     );
     expect(prismaMock.txEntryUpdateMany).not.toHaveBeenCalled();
@@ -819,7 +851,7 @@ describe("engineering journal data access", () => {
     expect(prismaMock.txEntryUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("allows different applicants to use the same entry date", async () => {
+  it("allows different applicants to use the same entry date for the same mission", async () => {
     await createJournalEntry(journalInput({ applicantId: "user-1" }));
     await createJournalEntry(journalInput({ applicantId: "user-2" }));
 
@@ -828,6 +860,7 @@ describe("engineering journal data access", () => {
       where: {
         tenantId: "tenant-1",
         applicantId: "user-1",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-07T00:00:00.000Z")
       },
       select: { id: true }
@@ -836,6 +869,7 @@ describe("engineering journal data access", () => {
       where: {
         tenantId: "tenant-1",
         applicantId: "user-2",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-07T00:00:00.000Z")
       },
       select: { id: true }
@@ -851,6 +885,7 @@ describe("engineering journal data access", () => {
       where: {
         tenantId: "tenant-1",
         applicantId: "user-1",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-07T00:00:00.000Z")
       },
       select: { id: true }
@@ -859,6 +894,7 @@ describe("engineering journal data access", () => {
       where: {
         tenantId: "tenant-2",
         applicantId: "user-1",
+        missionId: "mission-1",
         entryDate: new Date("2026-07-07T00:00:00.000Z")
       },
       select: { id: true }

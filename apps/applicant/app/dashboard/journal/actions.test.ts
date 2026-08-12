@@ -129,7 +129,7 @@ describe("saveJournalEntryAction", () => {
 
   it("surfaces JournalEntryDateConflictError with existingEntryId", async () => {
     mocks.createJournalEntry.mockRejectedValue(
-      new JournalEntryDateConflictError("You already have a journal entry for this date.", "journal-existing")
+      new JournalEntryDateConflictError("You already have a journal entry for this mission on this date.", "journal-existing")
     );
 
     const result = await saveJournalEntryAction(null, { ok: false, error: null, existingEntryId: null }, buildFormData());

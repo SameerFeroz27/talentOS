@@ -133,7 +133,8 @@ coverage matrix.
   `APPLICANT_NAV_ITEMS`.
 - Scenario coverage (`journal` area, added `v0.18.2`/D-077): create + edit against the assigned
   mission with list/audit assertions; create rejected against a published-but-unassigned mission;
-  one entry per calendar date enforced (`JournalEntryDateConflictError`); entries lock once the
+  one entry per applicant per mission per calendar date enforced (`JournalEntryDateConflictError`, v0.20.1 updated
+  from per-applicant to per-applicant-per-mission uniqueness); entries lock once the
   mission's assignment is submitted. See `docs/Regression_Scenarios.md`.
 
 ### Mission Assignment Tests (v0.18.0)
