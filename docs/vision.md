@@ -403,6 +403,14 @@ Participants should learn:
 
 ---
 
+6.3) # Pillar 3: Professional Engineering Skills
+
+Technical skills alone are insufficient.
+
+Participants must develop professional habits.
+
+---
+
 7) # DevOps & Deployment
 
 Over multiple assignments participants should learn how to:
@@ -568,14 +576,6 @@ Participants should learn:
 3. Design Systems
 4. AI-Assisted UI Generation
 5. Tools such as Magic Patterns
-
----
-
-6.3) # Pillar 3: Professional Engineering Skills
-
-Technical skills alone are insufficient.
-
-Participants must develop professional habits.
 
 ---
 
