@@ -368,8 +368,16 @@ async function main() {
   });
 
   // --- Org Admin: local Ops Console ----------------------------------------------------------
+  // The Ops Console is a standalone app not included in docker-compose, so it may not be running
+  // in every environment (e.g. CI). Skip gracefully instead of failing the whole script.
   if (sectionEnabled("ops")) await withContext(browser, async (_context, page) => {
-    await goTo(page, `${URLS.ops}/`);
+    try {
+      await goTo(page, `${URLS.ops}/`);
+    } catch {
+      skipped.push("26-ops-console.png — Ops Console not reachable at " + URLS.ops);
+      console.warn(`skipped 26-ops-console.png: Ops Console not reachable at ${URLS.ops}`);
+      return;
+    }
     await completeLogin(page, USERS.orgAdmin.username, USERS.orgAdmin.password);
     await shot(page, "26-ops-console.png");
   });
