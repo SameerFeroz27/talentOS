@@ -2,28 +2,43 @@
 
 ## Current Allocated Iteration (Review Pending)
 
-Version: `v0.19.7`
+Version: `v0.20.1`
 
-Baseline name: `Comprehensive Test Coverage Audit And Server-Action Regression Hardening`
+Baseline name: `Comprehensive Test Coverage, Request Logging And Journal Per-Mission-Per-Date`
 
-Base branch and commit: `origin/main` at `5560ccf`
+Base branch and commit: `origin/main` at `033418c` (v0.20.0 released via PR #56)
 
 Feature branch: `feature/comprehensive-test-coverage`
 
-Documentation date: `2026-08-10`
+Documentation date: `2026-08-12`
 
-Latest released baseline: `v0.19.6` at `5560ccf`
+Latest released baseline: `v0.20.0` at `033418c`
 
-Reserved active-branch version: `v0.20.0` — owned by `origin/feature/v0.20.0-mission-scoped-curriculum`.
+Reserved active-branch version: none — the only active unmerged remote branch is
+`origin/feature/comprehensive-test-coverage` (this branch).
 
-Migrations: none — no schema changes in this iteration.
+Migrations: `20260811000000_v0_20_1_journal_per_mission_per_date`
 
-Repository state: `v0.19.7` adds 10 new test files (138 test cases) and one documentation file.
-No production code was modified. All 809 tests pass (65 files). The feature branch was created
-from `origin/main` at `5560ccf`.
+Repository state: `v0.20.1` adds request logging to applicant and admin middleware, a journal
+uniqueness constraint per mission per date, updated test coverage, and refreshed documentation
+versions across all versioned docs.
 
-Upstream state: `v0.20.0` is reserved by `origin/feature/v0.20.0-mission-scoped-curriculum`;
-this iteration therefore allocates `v0.19.7` as the next available patch after `v0.19.6`.
+Upstream state: `origin/main` is at `033418c` (v0.20.0, PR #56). The previously active branches
+`origin/feature/v0.20.0-mission-scoped-curriculum` and `origin/feature/v0.20.1-e2e-evidence-ci`
+have been deleted (merged). Version allocation: `v0.20.0` is on main, so `v0.20.1` is the next
+available patch.
+
+### What this iteration changes
+
+1. **Request logging in middleware** — Applicant and admin middleware now log every request
+   (timestamp, method, path, tenant, auth status) to Docker stdout for observability.
+2. **Journal per-mission-per-date constraint** (migration
+   `20260811000000_v0_20_1_journal_per_mission_per_date`) — Enforces uniqueness of journal entries
+   per mission per date.
+3. **Updated test coverage** — New and updated tests for journal logic and applicant dashboard
+   journal actions.
+4. **Documentation version refresh** — All versioned docs updated from `v0.20.0`/earlier to
+   `v0.20.1` after pulling `origin/main`.
 
 ## Baseline Summary
 

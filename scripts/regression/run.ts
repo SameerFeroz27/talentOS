@@ -32,11 +32,12 @@ import {
   listApplicantJournalEntries,
   listAssignedProgramMissions,
   listCompletedTaskIds,
+  listCompletedTaskIdsForMission,
   listEngineeringJournalEntriesForSubmissionReview,
   listPreviousMissionAttemptHistoryForSubmissionReview,
   listPublishedProgramMissions,
   listPublishedPrograms,
-  listTasksByWeek,
+  listTasksByMission,
   markApplicantTaskCompleted,
   markMissionTaskComplete,
   markNotificationRead,
@@ -187,7 +188,7 @@ const scenarios: Scenario[] = [
         programId: fixture.program.id,
         title: `Applicant current-week task ${ctx.runId}`,
         description: "Visible only in the applicant's assigned program week.",
-        weekNumber: fixture.assignment.weekNumber,
+        missionId: fixture.assignment.missionId,
         order: 0,
         dueAt: null,
         required: true,
@@ -196,11 +197,7 @@ const scenarios: Scenario[] = [
       });
       await markRegressionData({ runId: ctx.runId, entityType: "ProgramTask", entityId: task.id });
 
-      const visibleTasks = await listTasksByWeek(
-        fixture.tenant.id,
-        fixture.program.id,
-        fixture.assignment.weekNumber
-      );
+      const visibleTasks = await listTasksByMission(fixture.tenant.id, fixture.assignment.missionId);
       if (!visibleTasks.some((candidate) => candidate.id === task.id)) {
         throw new Error("Applicant task query did not return the assigned program week task.");
       }
@@ -309,12 +306,13 @@ const scenarios: Scenario[] = [
     name: "Admin content path exposes ordered Markdown and YouTube resources for a weekly task",
     run: async (ctx) => {
       const fixture = await createProgramFixture(ctx.runId, "PUBLISHED");
+      const contentMission = await createRegressionTaskMission(ctx.runId, fixture, "Admin resource");
       const task = await createProgramTask({
         tenantId: fixture.tenant.id,
         programId: fixture.program.id,
         title: `Admin resource task ${ctx.runId}`,
         description: "Admin-configured weekly learning task.",
-        weekNumber: 1,
+        missionId: contentMission.id,
         order: 1,
         dueAt: null,
         required: true,
@@ -357,7 +355,7 @@ const scenarios: Scenario[] = [
         await markRegressionData({ runId: ctx.runId, entityType: "VideoResource", entityId: resource.id });
       }
 
-      const tasks = await listTasksByWeek(fixture.tenant.id, fixture.program.id, 1);
+      const tasks = await listTasksByMission(fixture.tenant.id, contentMission.id);
       const configured = tasks.find((candidate) => candidate.id === task.id);
       if (
         !configured ||
@@ -547,7 +545,8 @@ const scenarios: Scenario[] = [
     area: "missions",
     name: "Accepting a mission sets a Thursday deadline with at least four working days (v0.20.0)",
     run: async (ctx) => {
-      const { assignment } = await createSubmissionFixture(ctx.runId);
+      // Asserts on the acceptance -> deadline calculation, so it needs a genuine "just accepted" row.
+      const { assignment } = await createSubmissionFixture(ctx.runId, { backdateAcceptanceTo: null });
       const { acceptedAt, deadlineAt, graceEndsAt } = assignment;
       if (!acceptedAt || !deadlineAt || !graceEndsAt) {
         throw new Error("Accepted assignment is missing acceptedAt/deadlineAt/graceEndsAt.");
@@ -583,7 +582,7 @@ const scenarios: Scenario[] = [
         programId: fixture.program.id,
         title: `Prerequisite setup ${ctx.runId}`,
         description: "Must be completed before the mission can start.",
-        weekNumber: fixture.assignment.weekNumber,
+        missionId: fixture.assignment.missionId,
         order: 0,
         dueAt: null,
         required: true,
@@ -593,10 +592,10 @@ const scenarios: Scenario[] = [
       });
       await markRegressionData({ runId: ctx.runId, entityType: "ProgramTask", entityId: prereq.id });
 
-      const weekTasks = await listTasksByWeek(fixture.tenant.id, fixture.program.id, fixture.assignment.weekNumber);
+      const weekTasks = await listTasksByMission(fixture.tenant.id, fixture.assignment.missionId);
       const stored = weekTasks.find((task) => task.id === prereq.id);
       if (!stored) {
-        throw new Error("Prerequisite task was not returned by listTasksByWeek.");
+        throw new Error("Prerequisite task was not returned by listTasksByMission.");
       }
       if (!stored.isPrerequisite) {
         throw new Error("Stored task did not persist isPrerequisite=true.");
@@ -626,7 +625,7 @@ const scenarios: Scenario[] = [
             programId: fixture.program.id,
             title: `${title} ${ctx.runId}`,
             description: "Required regression task",
-            weekNumber: fixture.assignment.weekNumber,
+            missionId: fixture.assignment.missionId,
             order,
             dueAt: null,
             required: true,
@@ -904,7 +903,11 @@ const scenarios: Scenario[] = [
           missionId: weekTwoMission.id,
           weekNumber: 2,
           attemptNumber: 1,
-          status: "ACCEPTED"
+          status: "ACCEPTED",
+          // Built directly rather than through acceptMissionAssignment, so set the start explicitly:
+          // journal entries may not pre-date it (v0.20.0), and it would otherwise default to now.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({ runId: ctx.runId, entityType: "MissionAssignment", entityId: weekTwoAssignment.id });
@@ -956,7 +959,10 @@ const scenarios: Scenario[] = [
           missionId: fixture.mission.id,
           weekNumber: fixture.mission.weekNumber,
           attemptNumber: 2,
-          status: "ACCEPTED"
+          status: "ACCEPTED",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({ runId: ctx.runId, entityType: "MissionAssignment", entityId: attemptTwo.id });
@@ -980,7 +986,10 @@ const scenarios: Scenario[] = [
           missionId: fixture.mission.id,
           weekNumber: 1,
           attemptNumber: 1,
-          status: "ACCEPTED"
+          status: "ACCEPTED",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({ runId: ctx.runId, entityType: "MissionAssignment", entityId: otherApplicantAssignment.id });
@@ -1043,7 +1052,10 @@ const scenarios: Scenario[] = [
           missionId: otherTenantMission.id,
           weekNumber: 1,
           attemptNumber: 1,
-          status: "ACCEPTED"
+          status: "ACCEPTED",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({ runId: ctx.runId, entityType: "MissionAssignment", entityId: otherTenantAssignment.id });
@@ -1101,7 +1113,7 @@ const scenarios: Scenario[] = [
         programId: fixture.program.id,
         title: `Repeat-safe Week 1 task ${ctx.runId}`,
         description: "Week-level learning remains complete across assignment attempts.",
-        weekNumber: fixture.assignment.weekNumber,
+        missionId: fixture.assignment.missionId,
         order: 0,
         dueAt: null,
         required: true,
@@ -1140,6 +1152,22 @@ const scenarios: Scenario[] = [
         actorUserId: fixture.actor.id
       });
       await markRegressionData({ runId: ctx.runId, entityType: "Mission", entityId: alternateMission.id });
+      // Tasks belong to a mission (v0.20.0), so the repeat's different mission carries its own
+      // required task rather than inheriting attempt 1's. Authoring one here is what makes the
+      // attempt-2 readiness assertion below meaningful.
+      const alternateTask = await createProgramTask({
+        tenantId: fixture.tenant.id,
+        programId: fixture.program.id,
+        title: `Repeat alternate-mission task ${ctx.runId}`,
+        description: "Belongs to the alternate Week 1 mission only.",
+        missionId: alternateMission.id,
+        order: 0,
+        dueAt: null,
+        required: true,
+        published: true,
+        actorUserId: fixture.actor.id
+      });
+      await markRegressionData({ runId: ctx.runId, entityType: "ProgramTask", entityId: alternateTask.id });
 
       const attemptOneJournal = await createTrackedJournalEntry(
         ctx.runId,
@@ -1183,7 +1211,7 @@ const scenarios: Scenario[] = [
         throw new Error("Repeat attempt reassigned the same mission instead of a different Week 1 mission.");
       }
       // A fresh attempt starts NOT_STARTED, same as any assignment — accept it before working on it.
-      const attemptTwo = await acceptMissionAssignment({
+      const attemptTwo = await acceptFixtureAssignment({
         tenantId: fixture.tenant.id,
         applicantId: fixture.user.id,
         missionAssignmentId: attempts[1].id
@@ -1197,12 +1225,28 @@ const scenarios: Scenario[] = [
         applicantId: fixture.user.id,
         missionAssignmentId: attemptTwo.id
       });
+      // Reversed in v0.20.0: tasks are mission-scoped, so a repeat onto a *different* mission is
+      // measured against that mission's own tasks (required, not yet complete) rather than
+      // inheriting the previous mission's completion. Journal progress still resets per attempt.
       if (
         attemptTwoReadiness.tasks.required !== 1 ||
-        attemptTwoReadiness.tasks.completed !== 1 ||
+        attemptTwoReadiness.tasks.completed !== 0 ||
         attemptTwoReadiness.journals.completed !== 0
       ) {
-        throw new Error("Repeat attempt did not retain week tasks while resetting attempt-level journal progress.");
+        throw new Error(
+          "Repeat attempt should require the new mission's own tasks and reset attempt-level journal progress " +
+            `(required ${attemptTwoReadiness.tasks.required}, completed ${attemptTwoReadiness.tasks.completed}, ` +
+            `journals ${attemptTwoReadiness.journals.completed}).`
+        );
+      }
+      // The earlier mission's completion is untouched — repeating does not erase prior learning.
+      const retainedStillComplete = await listCompletedTaskIdsForMission(
+        fixture.tenant.id,
+        fixture.user.id,
+        fixture.assignment.missionId
+      );
+      if (!retainedStillComplete.includes(retainedTask.id)) {
+        throw new Error("Repeat wiped the completed task on the applicant's earlier mission.");
       }
 
       const attemptTwoJournal = await createTrackedJournalEntry(
@@ -1248,6 +1292,19 @@ const scenarios: Scenario[] = [
         throw new Error("Repeat attempts mixed old and new Engineering Journal entries.");
       }
 
+      // Attempt 2 is gated by the alternate mission's own required task (v0.20.0), so complete it
+      // before submitting — the assertion above already proved it started incomplete.
+      const alternateCompletion = await markApplicantTaskCompleted({
+        tenantId: fixture.tenant.id,
+        applicantId: fixture.user.id,
+        taskId: alternateTask.id,
+        missionAssignmentId: attemptTwo.id
+      });
+      await markRegressionData({
+        runId: ctx.runId,
+        entityType: "UserTaskCompletion",
+        entityId: alternateCompletion.id
+      });
       await submitRegressionSubmission(ctx.runId, {
         id: attemptTwoSubmission.id,
         tenantId: fixture.tenant.id,
@@ -1391,7 +1448,10 @@ const scenarios: Scenario[] = [
           missionId: replacementMission.id,
           weekNumber: fixture.mission.weekNumber,
           attemptNumber: 3,
-          status: "ACCEPTED"
+          status: "ACCEPTED",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({ runId: ctx.runId, entityType: "MissionAssignment", entityId: futureAttempt.id });
@@ -1832,19 +1892,27 @@ const scenarios: Scenario[] = [
         programId: fixture.program.id,
         title: `Tenant-scoped readiness task ${ctx.runId}`,
         description: "Only the assigned applicant's in-tenant completion counts.",
-        weekNumber: fixture.assignment.weekNumber,
+        missionId: fixture.assignment.missionId,
         order: 0,
         dueAt: null,
         required: true,
         published: true,
         actorUserId: fixture.actor.id
       });
+      // v0.20.0: isolation is now per mission, not per week — a completion on another mission's
+      // task must not satisfy this mission's readiness.
+      const otherMission = await createRegressionTaskMission(
+        ctx.runId,
+        fixture,
+        "Other-mission readiness",
+        fixture.assignment.weekNumber + 1
+      );
       const otherWeekTask = await createProgramTask({
         tenantId: fixture.tenant.id,
         programId: fixture.program.id,
-        title: `Other-week readiness task ${ctx.runId}`,
-        description: "A completion from Week 2 must not satisfy Week 1.",
-        weekNumber: fixture.assignment.weekNumber + 1,
+        title: `Other-mission readiness task ${ctx.runId}`,
+        description: "A completion on another mission must not satisfy this one.",
+        missionId: otherMission.id,
         order: 0,
         dueAt: null,
         required: true,
@@ -1993,7 +2061,10 @@ const scenarios: Scenario[] = [
           missionId: fixture.mission.id,
           weekNumber: fixture.mission.weekNumber,
           attemptNumber: 1,
-          status: "REPEAT"
+          status: "REPEAT",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({
@@ -2048,7 +2119,10 @@ const scenarios: Scenario[] = [
           missionId: otherProgramMission.id,
           weekNumber: fixture.mission.weekNumber,
           attemptNumber: 1,
-          status: "REPEAT"
+          status: "REPEAT",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({
@@ -2092,7 +2166,10 @@ const scenarios: Scenario[] = [
           missionId: otherWeekMission.id,
           weekNumber: 2,
           attemptNumber: 1,
-          status: "REPEAT"
+          status: "REPEAT",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({
@@ -2160,7 +2237,10 @@ const scenarios: Scenario[] = [
           missionId: otherTenantMission.id,
           weekNumber: fixture.mission.weekNumber,
           attemptNumber: 1,
-          status: "REPEAT"
+          status: "REPEAT",
+          // Built directly, so set the start explicitly (v0.20.0): journal entries may not pre-date it.
+          assignedAt: FIXTURE_ACCEPTED_AT,
+          acceptedAt: FIXTURE_ACCEPTED_AT
         }
       });
       await markRegressionData({
@@ -2323,12 +2403,13 @@ const scenarios: Scenario[] = [
       }
 
       const fixture = await createProgramFixture(ctx.runId, "PUBLISHED");
+      const contentTaskMission = await createRegressionTaskMission(ctx.runId, fixture, "Regression content");
       const task = await createProgramTask({
         tenantId: fixture.tenant.id,
         programId: fixture.program.id,
         title: `Regression Content Task ${ctx.runId}`,
         description: "Regression content task",
-        weekNumber: 1,
+        missionId: contentTaskMission.id,
         order: 0,
         dueAt: null,
         required: true,
@@ -2378,7 +2459,7 @@ const scenarios: Scenario[] = [
         durationSeconds: 180,
         actorUserId: fixture.actor.id
       });
-      const weekTasks = await listTasksByWeek(fixture.tenant.id, fixture.program.id, 1);
+      const weekTasks = await listTasksByMission(fixture.tenant.id, contentTaskMission.id);
       const configuredTask = weekTasks.find((candidate) => candidate.id === task.id);
       if (
         !configuredTask ||
@@ -2523,7 +2604,29 @@ async function createApplicationFixture(runId: string): Promise<Fixture> {
 }
 
 /** Applicant + published program + PUBLISHED mission — the submission-loop starting state (D-067). */
-async function createSubmissionFixture(runId: string) {
+/**
+ * Mission acceptance date used by fixtures that write journal entries. Chosen to precede every
+ * hard-coded fixture entryDate in this file so those scenarios have a valid window (v0.20.0).
+ */
+const FIXTURE_ACCEPTED_AT = new Date("2025-12-01T09:00:00.000Z");
+
+/** Accept an assignment, then backdate acceptedAt so journal-writing scenarios have valid dates. */
+async function acceptFixtureAssignment(input: {
+  tenantId: string;
+  applicantId: string;
+  missionAssignmentId: string;
+}) {
+  const accepted = await acceptMissionAssignment(input);
+  return prisma.missionAssignment.update({
+    where: { id: accepted.id },
+    data: { acceptedAt: FIXTURE_ACCEPTED_AT }
+  });
+}
+
+async function createSubmissionFixture(
+  runId: string,
+  { backdateAcceptanceTo = FIXTURE_ACCEPTED_AT }: { backdateAcceptanceTo?: Date | null } = {}
+) {
   const fixture = await createApplicationFixture(runId);
   const mission = await createMission({
     tenantId: fixture.tenant.id,
@@ -2571,11 +2674,22 @@ async function createSubmissionFixture(runId: string) {
   await markRegressionData({ runId, entityType: "MissionAssignment", entityId: assignment.id });
   // Mirrors the real applicant flow: assignments start NOT_STARTED and must be explicitly accepted
   // before evidence can be drafted/submitted against them.
-  const accepted = await acceptMissionAssignment({
+  let accepted = await acceptMissionAssignment({
     tenantId: fixture.tenant.id,
     applicantId: fixture.user.id,
     missionAssignmentId: assignment.id
   });
+  // Journal entries may not pre-date the mission start (v0.20.0), and they may not be in the future
+  // either — so a fixture accepted "now" leaves exactly one usable date, which collides with the
+  // one-entry-per-applicant-per-day rule. Backdating only acceptedAt opens a stable window of valid
+  // past dates for the journal scenarios while leaving the computed deadline untouched. Scenarios
+  // that assert on the acceptance→deadline calculation opt out with backdateAcceptanceTo: null.
+  if (backdateAcceptanceTo) {
+    accepted = await prisma.missionAssignment.update({
+      where: { id: accepted.id },
+      data: { acceptedAt: backdateAcceptanceTo }
+    });
+  }
   // Tasks 1 & 2 (Review Brief, Study Tutorial) must be complete before submitSubmission allows
   // Task 3 (submit for review) — mirrors the real applicant flow.
   await markMissionTaskComplete({ tenantId: fixture.tenant.id, applicantId: fixture.user.id, missionAssignmentId: accepted.id, taskIndex: 1 });
@@ -2651,7 +2765,7 @@ async function createRepeatedSubmissionFixture(runId: string) {
   }
   await markRegressionData({ runId, entityType: "MissionAssignment", entityId: attemptTwoNotStarted.id });
   // Attempt 2 always starts NOT_STARTED, same as any fresh assignment — accept it so it's usable.
-  const attemptTwo = await acceptMissionAssignment({
+  const attemptTwo = await acceptFixtureAssignment({
     tenantId: fixture.tenant.id,
     applicantId: fixture.user.id,
     missionAssignmentId: attemptTwoNotStarted.id
@@ -2834,6 +2948,35 @@ function regressionJournalInput(
   };
 }
 
+/**
+ * Tasks are mission-scoped (v0.20.0), so program-only fixtures need a mission to hang tasks on.
+ */
+async function createRegressionTaskMission(
+  runId: string,
+  fixture: { tenant: { id: string }; program: { id: string }; actor: { id: string } },
+  label: string,
+  weekNumber = 1
+) {
+  const mission = await createMission({
+    tenantId: fixture.tenant.id,
+    programId: fixture.program.id,
+    title: `${label} mission ${runId}`,
+    difficulty: "BEGINNER",
+    status: "PUBLISHED",
+    weekNumber,
+    order: weekNumber,
+    brief: "Regression task-scope mission",
+    objective: "Host regression tasks",
+    acceptanceCriteria: "n/a",
+    deliverables: "n/a",
+    evaluationCriteria: "n/a",
+    competencyTags: [],
+    actorUserId: fixture.actor.id
+  });
+  await markRegressionData({ runId, entityType: "Mission", entityId: mission.id });
+  return mission;
+}
+
 async function createProgramFixture(runId: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
   const tenant = await getTenantBySlug("demo");
   if (!tenant) throw new Error("Demo tenant not found. Run local bootstrap/seed first.");
@@ -2912,7 +3055,9 @@ async function createAcceptedDashboardFixture(runId: string) {
     data: {
       tenantId: fixture.tenant.id,
       programId: fixture.program.id,
-      weekNumber: 1,
+      // Tasks are authored per mission (v0.20.0); weekNumber is denormalized from that mission.
+      missionId: assignment.missionId,
+      weekNumber: assignment.weekNumber,
       title: `Regression Task ${runId}`,
       description: "Regression task",
       order: 0
