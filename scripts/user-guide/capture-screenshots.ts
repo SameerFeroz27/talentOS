@@ -30,9 +30,10 @@ const URLS = {
 
 const USERS = {
   accepted: { username: "accepted@demo.talentos.local", password: "ChangeMe123!" },
-  // Has real history — several missions, a repeated week and a full journal — so the workflow
-  // screenshots show populated screens rather than empty states.
-  worked: { username: "guide.applicant.mrxnzy25@demo.talentos.local", password: "ChangeMe123!" },
+  // Use the same seeded accepted user for workflow screenshots. The previous hardcoded
+  // guide.applicant.* user was created by a prior CI run's registration flow and does not
+  // exist in a fresh Keycloak instance, causing "Login flow did not converge" in CI.
+  worked: { username: "accepted@demo.talentos.local", password: "ChangeMe123!" },
   orgAdmin: { username: "orgadmin@demo.talentos.local", password: "ChangeMe123!" }
 };
 
