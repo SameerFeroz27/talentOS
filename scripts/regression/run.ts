@@ -2789,19 +2789,12 @@ const scenarios: Scenario[] = [
       if (!otherTenant) return skip("Only one tenant exists locally; cross-tenant scenario needs two tenants.");
 
       // Attempt to list assigned missions from another tenant — should not include the mission
-      const crossTenantList = await listAssignedProgramMissions({
-        tenantId: otherTenant.id,
-        applicantId: fixture.user.id,
-        programId: fixture.program.id
-      });
+      const crossTenantList = await listAssignedProgramMissions(otherTenant.id, fixture.user.id, fixture.program.id);
       if (crossTenantList.some((m) => m.id === fixture.mission.id)) {
         throw new Error("Mission appeared in assigned list for a different tenant.");
       }
       // Attempt to list published missions from another tenant — should not include the mission
-      const crossTenantPublished = await listPublishedProgramMissions({
-        tenantId: otherTenant.id,
-        programId: fixture.program.id
-      });
+      const crossTenantPublished = await listPublishedProgramMissions(otherTenant.id, fixture.program.id);
       if (crossTenantPublished.some((m) => m.id === fixture.mission.id)) {
         throw new Error("Mission appeared in published list for a different tenant.");
       }
@@ -2882,20 +2875,22 @@ const scenarios: Scenario[] = [
         data: { status: "FAILED" }
       });
 
-      // Attempt to save a draft — should still work (drafting is allowed)
-      // But submit should be rejected
-      const draft = await saveSubmissionDraft({
-        tenantId: fixture.tenant.id,
-        missionId: fixture.mission.id,
-        applicantId: fixture.user.id,
-        repositoryUrl: "https://github.com/regression/failed-submit",
-        deploymentUrl: "https://example.com/regression/failed-submit",
-        loomUrl: "https://www.loom.com/share/failed-submit",
-        journalMarkdown: "Attempting to submit on a FAILED assignment."
-      });
-      await markRegressionData({ runId: ctx.runId, entityType: "Submission", entityId: draft.id });
-
+      // Attempt to save a draft on a FAILED assignment — should be rejected because
+      // FAILED is not an active status (getActiveMissionAssignmentForMissionTx only matches
+      // ACCEPTED, IN_PROGRESS, OVERDUE). The draft save itself throws before submit is reached.
       try {
+        const draft = await saveSubmissionDraft({
+          tenantId: fixture.tenant.id,
+          missionId: fixture.mission.id,
+          applicantId: fixture.user.id,
+          repositoryUrl: "https://github.com/regression/failed-submit",
+          deploymentUrl: "https://example.com/regression/failed-submit",
+          loomUrl: "https://www.loom.com/share/failed-submit",
+          journalMarkdown: "Attempting to submit on a FAILED assignment."
+        });
+        await markRegressionData({ runId: ctx.runId, entityType: "Submission", entityId: draft.id });
+
+        // If draft somehow succeeded, submit must also be rejected
         await submitRegressionSubmission(ctx.runId, {
           id: draft.id,
           tenantId: fixture.tenant.id,
@@ -2904,7 +2899,7 @@ const scenarios: Scenario[] = [
         throw new Error("Submission was allowed on a FAILED assignment.");
       } catch (error) {
         if (!(error instanceof Error) || error.message.includes("was allowed")) throw error;
-        // Expected: submission rejected because FAILED assignment is not an active attempt
+        // Expected: "Mission is not assigned to an active attempt for this applicant."
       }
       return "FAILED assignment correctly rejects new submissions.";
     }
