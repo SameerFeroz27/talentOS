@@ -1,6 +1,6 @@
 # Regression Scenarios
 
-Code version: `v0.20.0`
+Code version: `v0.20.1`
 
 ## Purpose
 
@@ -117,7 +117,7 @@ are one scenario).
 | Missions | A rejected (`REPEAT`) submission's replacement assignment keeps the same `weekNumber` as the failed attempt. | Automated | v0.19.1 (D-082): the "Repeat-week attempts preserve journal history without duplicate or infinite loops" and "Repeated-week history stays separate across mission variants and attempt boundaries" fixtures assert the alternate mission is created at `fixture.mission.weekNumber`, exercising the same-week correction (`createRepeatMissionForSameWeekTx`) rather than a reset to Week 1. |
 | Journal | Applicant creates and edits a daily Engineering Journal entry against their assigned mission; entries are listed and audited (`journal.created`/`journal.updated`). | Automated | v0.18.2 (D-077) closes the `v0.17.0` coverage gap. |
 | Journal | Applicant cannot create a journal entry against a published mission that is not assigned to them. | Automated | v0.18.2 (D-077). |
-| Journal | One journal entry per applicant per calendar date is enforced. | Automated | v0.18.2 (D-077) exercises the `v0.17.1` database-level unique constraint via `JournalEntryDateConflictError`. |
+| Journal | One journal entry per applicant per mission per calendar date is enforced. | Automated | v0.20.1 updates the unique constraint from `(tenantId, applicantId, entryDate)` to `(tenantId, applicantId, missionId, entryDate)`. Applicants can now write separate entries for different missions on the same day. Same mission + same date is still blocked. |
 | Journal | Journal entries lock once the mission's assignment is submitted. | Automated | v0.18.2 (D-077) exercises `isJournalMissionLockedForApplicant`/`assertJournalMissionNotLocked`. |
 | Tenant isolation | Tenant-scoped program read rejects another tenant. | Partially automated | Skips when only one local tenant exists. Needs a second marked tenant fixture. |
 | Tenant isolation | Tenant-scoped submission read rejects another tenant. | Automated | v0.15.0 (D-067): cross-tenant submission access is denied. |
@@ -214,6 +214,14 @@ Cleanup rules:
   state), BUG-4 duplicate program entries in admin filter (LOW — deduplication by name +
   197 duplicate DB rows cleaned). Regression tests added to `middleware-redirect.test.ts`
   (40 total tests, all passing). See `docs/audits/v0.19.6_Applicant_Onboarding_QA_Report.md`.
+- **Comprehensive test coverage audit (v0.19.7, D-096):** A full audit of the codebase
+  identified that the server-action layer had no automated tests. 138 tests were added
+  in 10 new files covering: tenant CRUD (`tenants.test.ts`), program CRUD
+  (`programs.test.ts`), tenant resolution edge cases (`tenant.test.ts`), RBAC capability
+  matrix (`capabilities.test.ts`), journal validation helpers (`journal-validation.test.ts`),
+  applicant mission/journal server actions, and admin program/submission/organization
+  server actions. Total: 809 tests across 65 files, all passing. No production code was
+  modified. Complete coverage matrix documented in `docs/REGRESSION_TEST_PLAN.md`.
 - **Product decision needed:** applicants already `ACCEPTED` before Mission Assignment (`v0.18.0`)
   shipped have no `MissionAssignment` row and no automated backfill — they see zero missions until an
   admin/ops action (if any) assigns one. This was raised in PR review of the `engineering-journal-mvp`

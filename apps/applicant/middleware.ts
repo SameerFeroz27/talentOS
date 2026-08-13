@@ -10,6 +10,8 @@ export default auth((req) => {
   const { nextUrl } = req;
   const tenant = resolveTenantFromHost(req.headers.get("host"));
 
+  console.log(`[applicant] ${new Date().toISOString()} ${req.method} ${nextUrl.pathname} tenant=${tenant.tenantSlug} auth=${!!req.auth}`);
+
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => nextUrl.pathname === prefix || nextUrl.pathname.startsWith(`${prefix}/`)
   );

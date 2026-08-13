@@ -1,6 +1,6 @@
 # CI/CD & Delivery Policy
 
-Code version: `v0.16.3`
+Code version: `v0.20.1`
 
 Baseline commit: `3856f61`
 
