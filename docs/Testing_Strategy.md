@@ -1,8 +1,8 @@
 # Testing Strategy
 
-Code version: `v0.20.0`
+Code version: `v0.20.1`
 
-Test evidence commit: `08cea25`
+Test evidence commit: `5560ccf`
 
 ## Goals
 
@@ -22,6 +22,12 @@ The current unit and executed-regression totals are recorded in the versioned te
 not inferred here. CI
 (`.github/workflows/ci.yml`) runs the **unit suite only**; scenario regression is a local capability
 driven from npm scripts or the Ops Console against the running Docker stack.
+
+As of `v0.19.7`, the unit suite comprises **809 tests across 65 files** (up from 671/55 in `v0.19.6`).
+The `v0.19.7` audit added 138 tests in 10 new files covering tenant CRUD, program CRUD, tenant
+resolution edge cases, the RBAC capability matrix, journal validation helpers, and server actions
+for applicant and admin portals. See `D-096` and `docs/REGRESSION_TEST_PLAN.md` for the complete
+coverage matrix.
 
 ## Test Levels
 
@@ -127,7 +133,8 @@ driven from npm scripts or the Ops Console against the running Docker stack.
   `APPLICANT_NAV_ITEMS`.
 - Scenario coverage (`journal` area, added `v0.18.2`/D-077): create + edit against the assigned
   mission with list/audit assertions; create rejected against a published-but-unassigned mission;
-  one entry per calendar date enforced (`JournalEntryDateConflictError`); entries lock once the
+  one entry per applicant per mission per calendar date enforced (`JournalEntryDateConflictError`, v0.20.1 updated
+  from per-applicant to per-applicant-per-mission uniqueness); entries lock once the
   mission's assignment is submitted. See `docs/Regression_Scenarios.md`.
 
 ### Mission Assignment Tests (v0.18.0)
@@ -199,6 +206,40 @@ driven from npm scripts or the Ops Console against the running Docker stack.
   stack through real Keycloak OIDC flows to capture the 26 illustrated user-guide screenshots
   (`docs/user-guide/`), with a section filter for partial re-captures. It is run manually per
   release when user-facing screens change; it is not part of CI or scenario regression.
+
+### Server-Action & CRUD Coverage Audit Tests (v0.19.7)
+
+A comprehensive test-coverage audit identified that the server-action layer — the boundary
+between UI forms and business logic — had no automated tests. The `v0.19.7` iteration adds
+138 tests in 10 new files:
+
+- `packages/db/src/tenants.test.ts` (12 tests): tenant CRUD, `createOrganization` with P2002
+  duplicate-slug handling, email normalization, audit log, `updateTenantBranding` with
+  logo variations.
+- `packages/db/src/programs.test.ts` (12 tests): program CRUD, `slugify` edge cases,
+  `createProgram` with P2002, tenant-scoped `updateProgram` with not-found rejection.
+- `packages/db/src/journal-validation.test.ts` (33 tests): `normalizeJournalLanguage`,
+  `parseJournalEvidenceLinks` (newline/comma, empty, max 10, credentials, non-HTTP),
+  `validateConfidenceRating` (1–5, non-integer, NaN), `validateTimeSpentHours`
+  (0.25–24, negative), `normalizeJournalEntryDate` with timezone boundary.
+- `packages/auth/src/tenant.test.ts` (25 tests): `resolveTenantFromHost` edge cases
+  (null, port, protocol, case, multi-level, look-alikes), `isValidTenantSlug` (DNS-safe,
+  reserved, length boundaries).
+- `packages/auth/src/capabilities.test.ts` (17 tests): `canEnterAdminPortal` for all roles,
+  `can()` capability matrix (8 capabilities × 5 roles), `assertTenantScopedAccess`.
+- `apps/applicant/app/dashboard/missions/[id]/actions.test.ts` (9 tests):
+  `acceptMissionAction` and `saveSubmissionAction` happy/negative/error paths.
+- `apps/applicant/app/dashboard/journal/actions.test.ts` (8 tests):
+  `saveJournalEntryAction` create/update/conflict/error paths.
+- `apps/admin/app/programs/actions.test.ts` (7 tests):
+  `createProgramAction`, `updateProgramAction`, `setProgramStatusAction`.
+- `apps/admin/app/missions/submission-actions.test.ts` (8 tests):
+  `reviewSubmissionAction` accept/changes/repeat/invalid/backfill paths.
+- `apps/admin/app/organizations/actions.test.ts` (7 tests):
+  `createOrganizationAction` with validation, Keycloak provisioning, and failure recovery.
+
+All 809 tests pass. No production code was modified. See `D-096` and
+`docs/REGRESSION_TEST_PLAN.md` for the complete coverage matrix.
 
 ### Integration Tests
 

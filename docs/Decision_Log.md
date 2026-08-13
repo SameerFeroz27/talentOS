@@ -1,13 +1,13 @@
 # Decision Log
 
-Code version: `v0.20.0`
+Code version: `v0.20.1`
 
-Architecture evidence commit: `2b3afce`
+Architecture evidence commit: `5560ccf`
 
-Current documentation update: `v0.19.5`
+Current documentation update: `v0.20.1`
 
-Allocation note: `D-085` is reserved by active remote branch
-`origin/fix/v0.19.4-mission-task-checklist`; this branch therefore continues at `D-086`.
+Allocation note: `v0.20.0` was released to `origin/main` via PR #56; `v0.20.1` is the next
+available patch after `v0.20.0`.
 
 ## D-001
 
@@ -1157,6 +1157,76 @@ All CI steps pass: typecheck, lint (0 warnings), 671 tests, build (both apps).
 Full QA report at `docs/audits/v0.19.6_Applicant_Onboarding_QA_Report.md`.
 
 Date: 2026-08-07
+
+## D-096: Comprehensive Test Coverage Audit And Server-Action Regression Hardening (v0.19.7)
+
+**Context:** A full test-coverage audit of the TalentOS codebase identified that
+while the `packages/db` data-access layer and `packages/auth` pure logic were
+well-tested (55 files, 671 tests), the **server-action layer** — the boundary
+between UI forms and business logic — had no automated tests. Tenant CRUD,
+program CRUD, tenant resolution edge cases, and the RBAC capability matrix
+also lacked dedicated test coverage.
+
+**Decision:** Add 10 new test files (138 test cases) covering:
+
+1. **Tenant CRUD** (`packages/db/src/tenants.test.ts`, 12 tests) —
+   `getTenantBySlug`, `listTenants`, `createOrganization` (happy path, P2002
+   duplicate slug, email normalization, audit log, null actor), `updateTenantBranding`
+   (with/without/clear logo).
+
+2. **Program CRUD** (`packages/db/src/programs.test.ts`, 12 tests) —
+   `listPublishedPrograms`, `listTenantPrograms`, `getTenantProgram`, `slugify`
+   (4 cases), `createProgram` (happy, P2002), `updateProgram` (happy, not-found).
+
+3. **Tenant resolution edge cases** (`packages/auth/src/tenant.test.ts`, 25 tests) —
+   null/undefined/empty host, port stripping, protocol stripping, case
+   normalization, multi-level subdomains, localhost subdomains, apex fallback,
+   foreign domains, look-alike domains, slug validation (DNS-safe, reserved,
+   length boundaries).
+
+4. **RBAC capability matrix** (`packages/auth/src/capabilities.test.ts`, 17 tests) —
+   `canEnterAdminPortal` for all 5 roles + null/undefined, `can()` for all 8
+   capabilities × 5 roles, `assertTenantScopedAccess` (match, mismatch, null).
+
+5. **Journal validation helpers** (`packages/db/src/journal-validation.test.ts`, 33 tests) —
+   `normalizeJournalLanguage`, `parseJournalEvidenceLinks`, `validateConfidenceRating`,
+   `validateTimeSpentHours`, `normalizeJournalEntryDate` with timezone.
+
+6. **Applicant mission actions** (`apps/applicant/app/dashboard/missions/[id]/actions.test.ts`, 9 tests) —
+   `acceptMissionAction` (happy, not-assigned, not-linked, error),
+   `saveSubmissionAction` (save, submit, no-accepted-app, not-assigned, readiness error).
+
+7. **Applicant journal actions** (`apps/applicant/app/dashboard/journal/actions.test.ts`, 8 tests) —
+   `saveJournalEntryAction` (create, update, no-accepted-app, not-linked, missing
+   mission/date, `JournalEntryDateConflictError`, generic error).
+
+8. **Admin program actions** (`apps/admin/app/programs/actions.test.ts`, 7 tests) —
+   `createProgramAction` (happy, slug derivation, invalid status),
+   `updateProgramAction` (happy, not-found), `setProgramStatusAction` (happy, not-found).
+
+9. **Admin submission review** (`apps/admin/app/missions/submission-actions.test.ts`, 8 tests) —
+   `reviewSubmissionAction` (accept, needs-revision with/without feedback, repeat
+   without feedback, invalid decision, not-found, SUPER_ADMIN backfill, no DB user).
+
+10. **Admin organization actions** (`apps/admin/app/organizations/actions.test.ts`, 7 tests) —
+    `createOrganizationAction` (happy, existing user, missing name, invalid color,
+    invalid email, duplicate slug, Keycloak failure retryable).
+
+**Rationale:** Server actions are the primary attack surface for authorization
+and data-integrity bugs. Testing them at the unit level (with mocked dependencies)
+is fast, deterministic, and catches regressions before they reach the regression
+E2E suite or manual QA. No production code was modified — all 138 tests pass
+against the existing implementation, confirming the code is correct.
+
+**Alternatives considered:** Add Playwright browser E2E tests instead. Rejected —
+the existing custom regression runner already covers E2E flows; the gap was at
+the unit/server-action layer, which is better served by fast Vitest tests.
+
+**Impact:** 809 total tests (65 files), all passing. New
+`docs/REGRESSION_TEST_PLAN.md` documents the complete coverage matrix. No
+schema migrations, no production code changes, no user-facing changes.
+
+Date: 2026-08-10
 
 Status: Implemented; committed on `fix/applicant-journal-tenant-redirect`
 
